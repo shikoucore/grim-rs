@@ -1111,45 +1111,22 @@ impl WaylandCapture {
     pub fn greatest_logical_scale_for_region(&mut self, region: Option<Box>) -> Result<f64> {
         self.refresh_outputs()?;
         let snapshot = self.collect_outputs_snapshot();
-        if snapshot.is_empty() {
-            return Err(Error::NoOutputs);
-        }
-
-        let mut max_scale = 1.0_f64;
-        let mut any = false;
-
-        for (_, info) in &snapshot {
-            let output_box = Box::new(
-                info.logical_x,
-                info.logical_y,
-                info.logical_width,
-                info.logical_height,
-            );
-            if let Some(ref region) = region {
-                if output_box.intersection(region).is_none() {
-                    continue;
-                }
-            }
-
-            let scale = if info.logical_scale_known && info.logical_scale.is_finite() {
-                info.logical_scale
-            } else {
-                info.scale as f64
-            };
-
-            if scale > max_scale {
-                max_scale = scale;
-            }
-            any = true;
-        }
-
-        if !any {
-            return Err(Error::InvalidRegion(
-                "Capture region does not intersect with any output".to_string(),
-            ));
-        }
-
-        Ok(max_scale)
+        greatest_logical_scale_for_region_from_entries(
+            snapshot.into_iter().map(|(_, info)| {
+                (
+                    Box::new(
+                        info.logical_x,
+                        info.logical_y,
+                        info.logical_width,
+                        info.logical_height,
+                    ),
+                    info.scale,
+                    info.logical_scale_known,
+                    info.logical_scale,
+                )
+            }),
+            region.as_ref(),
+        )
     }
 
     pub fn capture_all(&mut self) -> Result<CaptureResult> {
@@ -1285,9 +1262,11 @@ impl WaylandCapture {
                     ))
                 })?;
 
-        let filter = if scale >= 1.0 {
-            imageops::FilterType::CatmullRom
+        let filter = if scale > 1.0 {
+            imageops::FilterType::Nearest
         } else if scale >= 0.75 {
+            imageops::FilterType::Triangle
+        } else if scale >= 0.5 {
             imageops::FilterType::CatmullRom
         } else {
             imageops::FilterType::Lanczos3
@@ -1553,6 +1532,117 @@ impl WaylandCapture {
         }
 
         Ok(MultiOutputCaptureResult::new(scaled_results))
+    }
+}
+
+fn greatest_logical_scale_for_region_from_entries<I>(
+    entries: I,
+    region: Option<&Box>,
+) -> Result<f64>
+where
+    I: IntoIterator<Item = (Box, i32, bool, f64)>,
+{
+    let mut max_scale = 1.0_f64;
+    let mut any_outputs = false;
+    let mut any_intersection = false;
+
+    for (output_box, wl_scale, logical_scale_known, logical_scale) in entries {
+        any_outputs = true;
+
+        if let Some(region) = region {
+            if output_box.intersection(region).is_none() {
+                continue;
+            }
+        }
+
+        let scale = if logical_scale_known && logical_scale.is_finite() {
+            logical_scale
+        } else {
+            wl_scale as f64
+        };
+
+        if scale > max_scale {
+            max_scale = scale;
+        }
+        any_intersection = true;
+    }
+
+    if !any_outputs {
+        return Err(Error::NoOutputs);
+    }
+
+    if !any_intersection {
+        return Err(Error::InvalidRegion(
+            "Capture region does not intersect with any output".to_string(),
+        ));
+    }
+
+    Ok(max_scale)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn greatest_logical_scale_errors_when_no_outputs() {
+        let region = Box::new(0, 0, 10, 10);
+        let result =
+            greatest_logical_scale_for_region_from_entries(std::iter::empty(), Some(&region));
+        assert!(matches!(result, Err(Error::NoOutputs)));
+    }
+
+    #[test]
+    fn greatest_logical_scale_errors_when_region_intersects_no_outputs() {
+        let outputs = vec![
+            (Box::new(0, 0, 100, 100), 1, false, 1.0),
+            (Box::new(200, 200, 100, 100), 2, false, 2.0),
+        ];
+        let region = Box::new(150, 150, 10, 10);
+        let result = greatest_logical_scale_for_region_from_entries(outputs, Some(&region));
+
+        match result {
+            Err(Error::InvalidRegion(msg)) => {
+                assert!(msg.contains("does not intersect"));
+            }
+            other => panic!("expected InvalidRegion, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn greatest_logical_scale_picks_max_among_intersecting_outputs() {
+        let outputs = vec![
+            (Box::new(0, 0, 100, 100), 1, false, 1.0),
+            (Box::new(50, 50, 100, 100), 2, false, 2.0),
+            (Box::new(500, 500, 10, 10), 8, false, 8.0),
+        ];
+        let region = Box::new(60, 60, 5, 5);
+        let scale = greatest_logical_scale_for_region_from_entries(outputs, Some(&region)).unwrap();
+        assert_eq!(scale, 2.0);
+    }
+
+    #[test]
+    fn greatest_logical_scale_supports_fractional_scales() {
+        let outputs = vec![
+            (Box::new(0, 0, 100, 100), 1, true, 1.25),
+            (Box::new(0, 0, 100, 100), 2, true, 1.5),
+        ];
+        let region = Box::new(10, 10, 1, 1);
+        let scale = greatest_logical_scale_for_region_from_entries(outputs, Some(&region)).unwrap();
+        assert_eq!(scale, 1.5);
+    }
+
+    #[test]
+    fn greatest_logical_scale_ignores_non_finite_logical_scale_falls_back_to_wl_scale() {
+        let outputs = vec![
+            // Non-finite logical scale should fall back to wl_scale.
+            (Box::new(0, 0, 100, 100), 2, true, f64::NAN),
+            // Finite logical scale should win.
+            (Box::new(0, 0, 100, 100), 1, true, 1.75),
+        ];
+        let region = Box::new(10, 10, 1, 1);
+        let scale = greatest_logical_scale_for_region_from_entries(outputs, Some(&region)).unwrap();
+        assert_eq!(scale, 2.0);
     }
 }
 
