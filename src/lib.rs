@@ -296,34 +296,6 @@ impl Grim {
         self.platform_capture.get_outputs()
     }
 
-    /// Returns the greatest (possibly fractional) output scale factor.
-    ///
-    /// If `region` is provided, only outputs intersecting the region are considered.
-    /// This matches grim's default behavior when choosing a scale for a region capture.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// - No outputs are available
-    /// - `region` does not intersect with any output
-    /// - Failed to refresh output information
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use grim_rs::{Box, Grim};
-    ///
-    /// let mut grim = Grim::new()?;
-    /// let region = Box::new(0, 0, 100, 100);
-    /// let scale = grim.greatest_scale_for_region(Some(region))?;
-    /// println!("scale: {}", scale);
-    /// # Ok::<(), grim_rs::Error>(())
-    /// ```
-    pub fn greatest_scale_for_region(&mut self, region: Option<Box>) -> Result<f64> {
-        self.platform_capture
-            .greatest_logical_scale_for_region(region)
-    }
-
     /// Capture the entire screen (all outputs).
     ///
     /// Captures a screenshot that includes all connected display outputs,
