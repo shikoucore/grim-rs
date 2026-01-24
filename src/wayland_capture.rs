@@ -1417,8 +1417,8 @@ impl Dispatch<ZwlrScreencopyFrameV1, Arc<Mutex<FrameState>>> for WaylandCapture 
                 width,
                 height,
             } => {
-                // LinuxDmabuf is an alternative buffer transfer mechanism. We currently do not
-                // support this path, but we log it to ease debugging on compositors that offer it.
+                // TODO:Обработка LinuxDmabuf - альтернативный способ передачи данных
+                // Пока не поддерживаем, но логируем для отладки
                 log::debug!(
                     "Received LinuxDmabuf: format={}, width={}, height={}",
                     format,
