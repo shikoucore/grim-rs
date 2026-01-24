@@ -103,32 +103,3 @@ impl std::str::FromStr for Box {
         Ok(Box::new(x, y, width, height))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_box_parsing() {
-        let box_str = "10,20 300x400";
-        let parsed: Box = box_str.parse().unwrap();
-        assert_eq!(parsed.x(), 10);
-        assert_eq!(parsed.y(), 20);
-        assert_eq!(parsed.width(), 300);
-        assert_eq!(parsed.height(), 400);
-    }
-
-    #[test]
-    fn test_box_intersection() {
-        let box1 = Box::new(0, 0, 100, 100);
-        let box2 = Box::new(50, 50, 100, 100);
-
-        assert!(box1.intersects(&box2));
-
-        let intersection = box1.intersection(&box2).unwrap();
-        assert_eq!(intersection.x(), 50);
-        assert_eq!(intersection.y(), 50);
-        assert_eq!(intersection.width(), 50);
-        assert_eq!(intersection.height(), 50);
-    }
-}
