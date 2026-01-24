@@ -1,6 +1,8 @@
 # grim-rs
+
 [![Crates.io Version](https://img.shields.io/crates/v/grim-rs.svg)](https://crates.io/crates/grim-rs)
->if you like this project, then the best way to express gratitude is to give it a star ⭐, it doesn't cost you anything, but I understand that I'm moving the project in the right direction.
+
+> if you like this project, then the best way to express gratitude is to give it a star ⭐, it doesn't cost you anything, but I understand that I'm moving the project in the right direction.
 
 Rust implementation of `grim-rs` screenshot utility for Wayland compositors.
 
@@ -37,7 +39,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-grim-rs = "0.1.3"
+grim-rs = "{version}"
 ```
 
 **Upgrading from 0.1.2?** See [MIGRATION.md](MIGRATION.md) for breaking changes.
@@ -49,20 +51,20 @@ use grim_rs::{Grim, Box};
 
 fn main() -> grim_rs::Result<()> {
     let mut grim = Grim::new()?;
-    
+
     // Capture entire screen (all outputs)
     let result = grim.capture_all()?;
     grim.save_png(result.data(), result.width(), result.height(), "screenshot.png")?;
-    
+
     // Capture specific region (automatically composites across monitors)
     let region = Box::new(100, 100, 800, 600);
     let result = grim.capture_region(region)?;
     grim.save_png(result.data(), result.width(), result.height(), "region.png")?;
-    
+
     // Capture specific output by name (handles transforms/rotation automatically)
     let result = grim.capture_output("DP-1")?;
     grim.save_png(result.data(), result.width(), result.height(), "output.png")?;
-    
+
     Ok(())
 }
 ```
@@ -74,7 +76,7 @@ use grim_rs::Grim;
 
 fn main() -> grim_rs::Result<()> {
     let mut grim = Grim::new()?;
-    
+
     // Get list of available outputs with their properties
     let outputs = grim.get_outputs()?;
     for output in outputs {
@@ -86,7 +88,7 @@ fn main() -> grim_rs::Result<()> {
             println!("  Description: {}", desc);
         }
     }
-    
+
     Ok(())
 }
 ```
@@ -98,20 +100,20 @@ use grim_rs::{Grim, Box};
 
 fn main() -> grim_rs::Result<()> {
     let mut grim = Grim::new()?;
-    
+
     // Capture entire screen with scaling (high-quality downscaling)
     let result = grim.capture_all_with_scale(0.5)?; // 50% size, uses Lanczos3 filter
     grim.save_png(result.data(), result.width(), result.height(), "thumbnail.png")?;
-    
+
     // Capture region with scaling
     let region = Box::new(0, 0, 1920, 1080);
     let result = grim.capture_region_with_scale(region, 0.8)?; // 80% size, uses Triangle filter
     grim.save_png(result.data(), result.width(), result.height(), "scaled.png")?;
-    
+
     // Capture specific output with scaling
     let result = grim.capture_output_with_scale("DP-1", 0.5)?;
     grim.save_png(result.data(), result.width(), result.height(), "output_scaled.png")?;
-    
+
     Ok(())
 }
 ```
@@ -123,7 +125,7 @@ use grim_rs::{Grim, Box, CaptureParameters};
 
 fn main() -> grim_rs::Result<()> {
     let mut grim = Grim::new()?;
-    
+
     // Capture multiple outputs with different parameters
     let parameters = vec![
         CaptureParameters::new("DP-1")
@@ -132,13 +134,13 @@ fn main() -> grim_rs::Result<()> {
             .region(Box::new(0, 0, 1920, 1080))
             .scale(0.5)
     ];
-    
+
     let results = grim.capture_outputs(parameters)?;
     for (output_name, result) in results.into_outputs() {
         let filename = format!("{}.png", output_name);
         grim.save_png(result.data(), result.width(), result.height(), &filename)?;
     }
-    
+
     Ok(())
 }
 ```
@@ -151,22 +153,22 @@ use grim_rs::Grim;
 fn main() -> grim_rs::Result<()> {
     let mut grim = Grim::new()?;
     let result = grim.capture_all()?;
-    
+
     // Save as PNG with default compression (level 6)
     grim.save_png(result.data(), result.width(), result.height(), "screenshot.png")?;
-    
+
     // Save as PNG with custom compression (0-9, where 9 is highest)
     grim.save_png_with_compression(result.data(), result.width(), result.height(), "compressed.png", 9)?;
-    
+
     // Save as JPEG with default quality (80)
     grim.save_jpeg(result.data(), result.width(), result.height(), "screenshot.jpg")?;
-    
+
     // Save as JPEG with custom quality (0-100, where 100 is highest)
     grim.save_jpeg_with_quality(result.data(), result.width(), result.height(), "quality.jpg", 95)?;
-    
+
     // Save as PPM (uncompressed)
     grim.save_ppm(result.data(), result.width(), result.height(), "screenshot.ppm")?;
-    
+
     Ok(())
 }
 ```
@@ -179,25 +181,25 @@ use grim_rs::Grim;
 fn main() -> grim_rs::Result<()> {
     let mut grim = Grim::new()?;
     let result = grim.capture_all()?;
-    
+
     // Convert to PNG bytes
     let png_bytes = grim.to_png(result.data(), result.width(), result.height())?;
     println!("PNG size: {} bytes", png_bytes.len());
-    
+
     // Convert to PNG bytes with custom compression
     let png_bytes = grim.to_png_with_compression(result.data(), result.width(), result.height(), 9)?;
-    
+
     // Convert to JPEG bytes
     let jpeg_bytes = grim.to_jpeg(result.data(), result.width(), result.height())?;
     println!("JPEG size: {} bytes", jpeg_bytes.len());
-    
+
     // Convert to JPEG bytes with custom quality
     let jpeg_bytes = grim.to_jpeg_with_quality(result.data(), result.width(), result.height(), 85)?;
-    
+
     // Convert to PPM bytes
     let ppm_bytes = grim.to_ppm(result.data(), result.width(), result.height())?;
     println!("PPM size: {} bytes", ppm_bytes.len());
-    
+
     Ok(())
 }
 ```
@@ -210,22 +212,22 @@ use grim_rs::Grim;
 fn main() -> grim_rs::Result<()> {
     let mut grim = Grim::new()?;
     let result = grim.capture_all()?;
-    
+
     // Write PNG to stdout
     grim.write_png_to_stdout(result.data(), result.width(), result.height())?;
-    
+
     // Write PNG to stdout with custom compression
     grim.write_png_to_stdout_with_compression(result.data(), result.width(), result.height(), 6)?;
-    
+
     // Write JPEG to stdout
     grim.write_jpeg_to_stdout(result.data(), result.width(), result.height())?;
-    
+
     // Write JPEG to stdout with custom quality
     grim.write_jpeg_to_stdout_with_quality(result.data(), result.width(), result.height(), 90)?;
-    
+
     // Write PPM to stdout
     grim.write_ppm_to_stdout(result.data(), result.width(), result.height())?;
-    
+
     Ok(())
 }
 ```
@@ -237,13 +239,13 @@ use grim_rs::Grim;
 
 fn main() -> grim_rs::Result<()> {
     let mut grim = Grim::new()?;
-    
+
     // Read region specification from stdin (format: "x,y widthxheight")
     let region = Grim::read_region_from_stdin()?;
-    
+
     let result = grim.capture_region(region)?;
     grim.save_png(result.data(), result.width(), result.height(), "region.png")?;
-    
+
     Ok(())
 }
 ```
@@ -253,6 +255,7 @@ fn main() -> grim_rs::Result<()> {
 The `grim-rs` binary supports the same functionality as the library API. By default, saves to `~/Pictures` (XDG Pictures directory) with timestamped filenames.
 
 **Available Options:**
+
 ```bash
 -h              Show help message and quit
 -s <factor>     Set the output image's scale factor (e.g., 0.5 for 50%)
@@ -337,12 +340,15 @@ grim-rs - | wl-copy  # Pipe to clipboard
 ### Core Methods
 
 #### Initialization
+
 - `Grim::new()` - Create new Grim instance and connect to Wayland compositor
 
 #### Getting Display Information
+
 - `get_outputs()` - Get list of available outputs with their properties (name, geometry, scale)
 
 #### Capture Methods
+
 - `capture_all()` - Capture entire screen (all outputs)
 - `capture_all_with_scale(scale: f64)` - Capture entire screen with scaling
 - `capture_output(output_name: &str)` - Capture specific output by name
@@ -353,6 +359,7 @@ grim-rs - | wl-copy  # Pipe to clipboard
 - `capture_outputs_with_scale(parameters: Vec<CaptureParameters>, default_scale: f64)` - Capture multiple outputs with scaling
 
 #### Saving to Files
+
 - `save_png(&data, width, height, path)` - Save as PNG with default compression (level 6)
 - `save_png_with_compression(&data, width, height, path, compression: u8)` - Save as PNG with custom compression (0-9)
 - `save_jpeg(&data, width, height, path)` - Save as JPEG with default quality (80) [requires `jpeg` feature]
@@ -360,6 +367,7 @@ grim-rs - | wl-copy  # Pipe to clipboard
 - `save_ppm(&data, width, height, path)` - Save as PPM (uncompressed)
 
 #### Converting to Bytes
+
 - `to_png(&data, width, height)` - Convert to PNG bytes with default compression
 - `to_png_with_compression(&data, width, height, compression: u8)` - Convert to PNG bytes with custom compression
 - `to_jpeg(&data, width, height)` - Convert to JPEG bytes with default quality [requires `jpeg` feature]
@@ -367,6 +375,7 @@ grim-rs - | wl-copy  # Pipe to clipboard
 - `to_ppm(&data, width, height)` - Convert to PPM bytes
 
 #### Writing to Stdout
+
 - `write_png_to_stdout(&data, width, height)` - Write PNG to stdout with default compression
 - `write_png_to_stdout_with_compression(&data, width, height, compression: u8)` - Write PNG to stdout with custom compression
 - `write_jpeg_to_stdout(&data, width, height)` - Write JPEG to stdout with default quality [requires `jpeg` feature]
@@ -374,36 +383,47 @@ grim-rs - | wl-copy  # Pipe to clipboard
 - `write_ppm_to_stdout(&data, width, height)` - Write PPM to stdout
 
 #### Stdin Input
+
 - `Grim::read_region_from_stdin()` - Read region specification from stdin (format: "x,y widthxheight")
 
 ### Data Structures
 
 #### `CaptureResult`
+
 Contains captured image data:
+
 - `data: Vec<u8>` - Raw RGBA image data (4 bytes per pixel)
 - `width: u32` - Image width in pixels
 - `height: u32` - Image height in pixels
 
 #### `CaptureParameters`
+
 Parameters for capturing specific outputs:
+
 - `output_name: String` - Name of the output to capture
 - `region: Option<Box>` - Optional region within the output
 - `overlay_cursor: bool` - Whether to include cursor in capture
 - `scale: Option<f64>` - Optional scale factor for the output
 
 #### `MultiOutputCaptureResult`
+
 Result of capturing multiple outputs:
+
 - `outputs: HashMap<String, CaptureResult>` - Map of output names to their capture results
 
 #### `Output`
+
 Information about a display output:
+
 - `name: String` - Output name (e.g., "eDP-1", "HDMI-A-1")
 - `geometry: Box` - Output position and size
 - `scale: i32` - Scale factor (1 for normal DPI, 2 for HiDPI)
 - `description: Option<String>` - Monitor model and manufacturer information
 
 #### `Box`
+
 Rectangular region:
+
 - `x: i32` - X coordinate
 - `y: i32` - Y coordinate
 - `width: i32` - Width
@@ -414,8 +434,9 @@ Rectangular region:
 
 - **`jpeg`** - Enable JPEG support (enabled by default)
   - Adds `save_jpeg*`, `to_jpeg*`, and `write_jpeg_to_stdout*` methods
-  
+
 To disable JPEG support:
+
 ```toml
 [dependencies]
 grim-rs = { version = "0.1.0", default-features = false }
@@ -431,22 +452,22 @@ cargo doc --open
 
 ## Comparison with Original grim
 
-| Feature | Original grim | grim-rs |
-|---------|---------------|---------|
-| Language | C | Rust |
-| Dependencies | libpng, pixman, wayland, libjpeg | Pure Rust crates |
-| Output formats | PNG, JPEG, PPM | PNG, JPEG, PPM |
-| Installation | System package | Rust crate |
-| Integration | External process | Library + Binary |
-| Memory safety | Manual | Guaranteed by Rust |
-| Output transforms | ✅ | ✅ |
-| Y-invert handling | ✅ | ✅ |
-| Multi-monitor compositing | ✅ | ✅ |
-| Image scaling | Nearest-neighbor | 4-tier adaptive (Triangle/CatmullRom/Lanczos3) |
-| XDG Pictures support | ✅ | ✅ |
-| Output descriptions | ✅ | ✅ |
-| Color accuracy | ✅ | ✅ |
-| Real capture | ✅ | ✅ |
+| Feature                   | Original grim                    | grim-rs                                        |
+| ------------------------- | -------------------------------- | ---------------------------------------------- |
+| Language                  | C                                | Rust                                           |
+| Dependencies              | libpng, pixman, wayland, libjpeg | Pure Rust crates                               |
+| Output formats            | PNG, JPEG, PPM                   | PNG, JPEG, PPM                                 |
+| Installation              | System package                   | Rust crate                                     |
+| Integration               | External process                 | Library + Binary                               |
+| Memory safety             | Manual                           | Guaranteed by Rust                             |
+| Output transforms         | ✅                               | ✅                                             |
+| Y-invert handling         | ✅                               | ✅                                             |
+| Multi-monitor compositing | ✅                               | ✅                                             |
+| Image scaling             | Nearest-neighbor                 | 4-tier adaptive (Triangle/CatmullRom/Lanczos3) |
+| XDG Pictures support      | ✅                               | ✅                                             |
+| Output descriptions       | ✅                               | ✅                                             |
+| Color accuracy            | ✅                               | ✅                                             |
+| Real capture              | ✅                               | ✅                                             |
 
 ## Architecture
 
@@ -493,7 +514,6 @@ Adaptive 4-tier algorithm selection ensures optimal quality/performance balance:
 - **Mild downscaling (0.75 ≤ scale ≤ 1.0)**: Triangle filter
   - Fast, high-quality for small size reductions
   - Perfect for minor adjustments: 1920×1080 → 1536×864 (0.8×)
-  
 - **Moderate downscaling (0.5 ≤ scale < 0.75)**: CatmullRom filter
   - Sharper results than Triangle
   - Better performance than Lanczos3
