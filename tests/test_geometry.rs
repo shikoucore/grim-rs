@@ -1,0 +1,31 @@
+use grim_rs::Box;
+
+#[test]
+fn test_box_parsing() {
+    let box_str = "10,20 300x400";
+    let parsed: Box = match box_str.parse() {
+        Ok(value) => value,
+        Err(err) => panic!("unexpected parse error: {err}"),
+    };
+    assert_eq!(parsed.x(), 10);
+    assert_eq!(parsed.y(), 20);
+    assert_eq!(parsed.width(), 300);
+    assert_eq!(parsed.height(), 400);
+}
+
+#[test]
+fn test_box_intersection() {
+    let box1 = Box::new(0, 0, 100, 100);
+    let box2 = Box::new(50, 50, 100, 100);
+
+    assert!(box1.intersects(&box2));
+
+    let intersection = match box1.intersection(&box2) {
+        Some(value) => value,
+        None => panic!("expected intersection, got none"),
+    };
+    assert_eq!(intersection.x(), 50);
+    assert_eq!(intersection.y(), 50);
+    assert_eq!(intersection.width(), 50);
+    assert_eq!(intersection.height(), 50);
+}

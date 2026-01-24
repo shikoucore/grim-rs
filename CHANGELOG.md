@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4]
+
+### Fixed
+- **Wayland region capture under fractional scaling**: Corrected logical/physical mapping by using a fractional logical scale (when available) and floor/ceil rounding to avoid incorrect region sizes. Fixes [#9](https://github.com/shikoucore/grim-rs/issues/9), [@Jeremis70](https://github.com/Jeremis70).
+
 ## [0.1.3] - 2025-10-11
 
 ### Changed
