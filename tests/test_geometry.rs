@@ -29,3 +29,12 @@ fn test_box_intersection() {
     assert_eq!(intersection.width(), 50);
     assert_eq!(intersection.height(), 50);
 }
+
+#[test]
+fn test_geometry_parsing() {
+    let geometry: Box = "100,200 800x600".parse().unwrap();
+    assert_eq!(geometry.x(), 100);
+    assert_eq!(geometry.y(), 200);
+    assert_eq!(geometry.width(), 800);
+    assert_eq!(geometry.height(), 600);
+}
