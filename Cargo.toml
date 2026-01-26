@@ -6,9 +6,9 @@ description = "Rust implementation of grim screenshot utility for Wayland"
 license-file = "LICENSE"
 keywords = ["wayland", "screenshot", "grim", "screen-capture"]
 categories = ["graphics", "api-bindings"]
-repository = "https://github.com/vremyavnikuda/grim-rs"
+repository = "https://github.com/shikoucore/grim-rs"
 documentation = "https://docs.rs/grim-rs"
-homepage = "https://github.com/vremyavnikuda/grim-rs"
+homepage = "https://github.com/shikoucore/grim-rs"
 readme = "README.md"
 exclude = ["/target", ".gitignore", "todo.md", "grim.md"]
 authors = ["vremyavnikuda <hopperplayer0@gmail.com>"]
@@ -26,14 +26,12 @@ image = { version = "0.25", features = ["png"] }
 jpeg-encoder = { version = "0.6", optional = true }
 png = { version = "0.17", optional = true }
 thiserror = "1.0"
-anyhow = "1.0"
 wayland-client = "0.31"
 wayland-protocols = { version = "0.32", features = ["client", "unstable"] }
 wayland-protocols-wlr = { version = "0.3", features = ["client"] }
 memmap2 = "0.9"
 tempfile = "3.10"
-log = "0.4"
-env_logger = "0.10"
+log = "0.4.29"
 chrono = "0.4"
 
 [dev-dependencies]
