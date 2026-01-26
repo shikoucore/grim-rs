@@ -1,11 +1,7 @@
+# folder
 /target
-RULES.md
 
 # Profiling results
-flamegraph.svg
-perf.data
-perf.data.old
-massif.out.*
-heaptrack.*
-target/profiling/
+
+# todo
 todo.md
