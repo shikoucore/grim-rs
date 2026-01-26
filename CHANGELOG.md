@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.5]
 
+### Fixed
+- **Safe buffer sizing**: Added checked buffer size calculations with a global pixel limit to prevent overflow and OOM during capture, scaling, and compositing.
+
 ### Testing
 - **Integration test cleanup**: Moved `lib.rs` tests into the `tests/` suite and aligned assertions with public getters.
 
