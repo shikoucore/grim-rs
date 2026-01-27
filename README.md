@@ -6,8 +6,8 @@
 
 Rust implementation of `grim-rs` screenshot utility for Wayland compositors.
 
-> **⚠️ Breaking Changes in v0.1.3**  
-> Version 0.1.3 introduces breaking changes related to struct field encapsulation. See [MIGRATION.md](MIGRATION.md) for upgrade guide.
+> See [CHANGELOG.md](CHANGELOG.md) for version changes.
+> If a release requires migration, it will be documented in [MIGRATION.md](MIGRATION.md) and referenced from the changelog.
 
 ## Features
 
@@ -16,7 +16,7 @@ Rust implementation of `grim-rs` screenshot utility for Wayland compositors.
 - **Multi-monitor support** with automatic compositing across monitor boundaries
 - **Output transforms** - full support for rotated/flipped displays (all 8 Wayland transform types)
 - **High-quality image scaling** - 4-tier adaptive algorithm selection:
-  - Upscaling (>1.0): Triangle filter for smooth interpolation
+  - Upscaling (>1.0): Nearest filter for fast, pixel-accurate enlargement
   - Mild downscaling (0.75-1.0): Triangle for fast, high-quality results
   - Moderate downscaling (0.5-0.75): CatmullRom for sharp results with good performance
   - Heavy downscaling (<0.5): Lanczos3 for best quality at extreme reduction
@@ -25,7 +25,7 @@ Rust implementation of `grim-rs` screenshot utility for Wayland compositors.
   - PNG with configurable compression (0-9)
   - JPEG with quality control (0-100)
   - PPM (uncompressed)
-- **XDG Pictures directory support** - automatic file placement in `~/Pictures`
+- **XDG Pictures directory support** - automatic file placement in the XDG Pictures directory when it exists
 - **Y-invert flag handling** - correct screenshot orientation on all compositors
 - **Cursor overlay support** (compositor-dependent)
 - **Zero external tool dependencies**
@@ -42,7 +42,7 @@ Add to your `Cargo.toml`:
 grim-rs = "{version}"
 ```
 
-**Upgrading from 0.1.2?** See [MIGRATION.md](MIGRATION.md) for breaking changes.
+**Upgrading?** See the notes at the top of this README.
 
 ### Basic Capture Operations
 
@@ -132,10 +132,10 @@ fn main() -> grim_rs::Result<()> {
             .overlay_cursor(true),
         CaptureParameters::new("HDMI-A-1")
             .region(Box::new(0, 0, 1920, 1080))
-            .scale(0.5)
     ];
 
-    let results = grim.capture_outputs(parameters)?;
+    // Scaling is applied uniformly to all outputs via default_scale
+    let results = grim.capture_outputs_with_scale(parameters, 0.5)?;
     for (output_name, result) in results.into_outputs() {
         let filename = format!("{}.png", output_name);
         grim.save_png(result.data(), result.width(), result.height(), &filename)?;
@@ -252,7 +252,7 @@ fn main() -> grim_rs::Result<()> {
 
 ### Command Line Usage
 
-The `grim-rs` binary supports the same functionality as the library API. By default, saves to `~/Pictures` (XDG Pictures directory) with timestamped filenames.
+The `grim-rs` binary supports the same functionality as the library API. By default, it saves to the XDG Pictures directory if it exists, otherwise to the current directory, with timestamped filenames.
 
 **Available Options:**
 
@@ -273,7 +273,7 @@ The `grim-rs` binary supports the same functionality as the library API. By defa
 # Build the binary first
 cargo build --release
 
-# Capture entire screen (saves to ~/Pictures/<timestamp>.png)
+# Capture entire screen (saves to XDG Pictures if it exists, else ./<timestamp>.png)
 cargo run --bin grim-rs
 
 # Capture with specific filename
@@ -403,7 +403,7 @@ Parameters for capturing specific outputs:
 - `output_name: String` - Name of the output to capture
 - `region: Option<Box>` - Optional region within the output
 - `overlay_cursor: bool` - Whether to include cursor in capture
-- `scale: Option<f64>` - Optional scale factor for the output
+- `scale: Option<f64>` - Stored in parameters but not applied by the backend; use `capture_outputs_with_scale(..., default_scale)` for scaling
 
 #### `MultiOutputCaptureResult`
 
@@ -463,7 +463,7 @@ cargo doc --open
 | Output transforms         | ✅                               | ✅                                             |
 | Y-invert handling         | ✅                               | ✅                                             |
 | Multi-monitor compositing | ✅                               | ✅                                             |
-| Image scaling             | Nearest-neighbor                 | 4-tier adaptive (Triangle/CatmullRom/Lanczos3) |
+| Image scaling             | Nearest-neighbor                 | 4-tier adaptive (Nearest/Triangle/CatmullRom/Lanczos3) |
 | XDG Pictures support      | ✅                               | ✅                                             |
 | Output descriptions       | ✅                               | ✅                                             |
 | Color accuracy            | ✅                               | ✅                                             |
@@ -506,9 +506,9 @@ Wayland Screencopy → Buffer → Output Transform → Y-invert → Scaling → 
 
 Adaptive 4-tier algorithm selection ensures optimal quality/performance balance:
 
-- **Upscaling (scale > 1.0)**: Triangle filter
-  - Smooth interpolation for enlarging images
-  - Avoids pixelation when scaling up
+- **Upscaling (scale > 1.0)**: Nearest filter
+  - Fastest option for scaling up
+  - Preserves hard edges (can look blocky)
   - Example: 1920×1080 → 2560×1440 (1.33×)
 
 - **Mild downscaling (0.75 ≤ scale ≤ 1.0)**: Triangle filter
@@ -529,7 +529,7 @@ Adaptive 4-tier algorithm selection ensures optimal quality/performance balance:
 - **`GRIM_DEFAULT_DIR`** - Override default screenshot directory (highest priority)
 - **`XDG_PICTURES_DIR`** - XDG Pictures directory (from env or `~/.config/user-dirs.dirs`)
 
-Priority order: `GRIM_DEFAULT_DIR` → `XDG_PICTURES_DIR` → current directory
+Priority order: `GRIM_DEFAULT_DIR` → `XDG_PICTURES_DIR` (if it exists) → current directory
 
 ## Supported Compositors
 
