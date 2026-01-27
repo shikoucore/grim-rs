@@ -21,8 +21,8 @@ fn benchmark_png_encoding(c: &mut Criterion) {
 
         group.throughput(Throughput::Bytes(bytes));
         group.bench_with_input(BenchmarkId::from_parameter(name), &data, |b, data| {
+            let grim = Grim::new().expect("Failed to create Grim");
             b.iter(|| {
-                let grim = Grim::new().expect("Failed to create Grim");
                 let result = grim
                     .to_png(data, *width, *height)
                     .expect("Failed to encode PNG");
@@ -43,8 +43,8 @@ fn benchmark_png_compression_levels(c: &mut Criterion) {
 
     for level in [1, 6, 9].iter() {
         group.bench_with_input(BenchmarkId::from_parameter(level), level, |b, &level| {
+            let grim = Grim::new().expect("Failed to create Grim");
             b.iter(|| {
-                let grim = Grim::new().expect("Failed to create Grim");
                 let result = grim
                     .to_png_with_compression(&data, width, height, level)
                     .expect("Failed to encode PNG");
@@ -72,8 +72,8 @@ fn benchmark_jpeg_encoding(c: &mut Criterion) {
 
         group.throughput(Throughput::Bytes(bytes));
         group.bench_with_input(BenchmarkId::from_parameter(name), &data, |b, data| {
+            let grim = Grim::new().expect("Failed to create Grim");
             b.iter(|| {
-                let grim = Grim::new().expect("Failed to create Grim");
                 let result = grim
                     .to_jpeg(data, *width, *height)
                     .expect("Failed to encode JPEG");
@@ -98,8 +98,8 @@ fn benchmark_jpeg_quality_levels(c: &mut Criterion) {
             BenchmarkId::from_parameter(quality),
             quality,
             |b, &quality| {
+                let grim = Grim::new().expect("Failed to create Grim");
                 b.iter(|| {
-                    let grim = Grim::new().expect("Failed to create Grim");
                     let result = grim
                         .to_jpeg_with_quality(&data, width, height, quality)
                         .expect("Failed to encode JPEG");
@@ -127,8 +127,8 @@ fn benchmark_ppm_encoding(c: &mut Criterion) {
 
         group.throughput(Throughput::Bytes(bytes));
         group.bench_with_input(BenchmarkId::from_parameter(name), &data, |b, data| {
+            let grim = Grim::new().expect("Failed to create Grim");
             b.iter(|| {
-                let grim = Grim::new().expect("Failed to create Grim");
                 let result = grim
                     .to_ppm(data, *width, *height)
                     .expect("Failed to encode PPM");

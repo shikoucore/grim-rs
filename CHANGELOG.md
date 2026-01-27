@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Dependency cleanup**: Removed unused `anyhow` and moved `env_logger` to dev-dependencies.
 - **Dependency update**: Bumped `log` to v0.4.29.
+- **Dependency update**: Bumped `chrono` to v0.4.43.
+- **Dependency update**: Bumped `tempfile` to v3.24.0.
 
 ### Testing
 - **Integration test cleanup**: Moved `lib.rs` tests into the `tests/` suite and aligned assertions with public getters.

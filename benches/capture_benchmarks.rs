@@ -5,8 +5,8 @@ fn benchmark_capture_all(c: &mut Criterion) {
     let mut group = c.benchmark_group("capture_all");
 
     group.bench_function("capture_all", |b| {
+        let mut grim = Grim::new().expect("Failed to create Grim");
         b.iter(|| {
-            let mut grim = Grim::new().expect("Failed to create Grim");
             let result = grim.capture_all().expect("Failed to capture");
             black_box(result);
         });
@@ -20,8 +20,8 @@ fn benchmark_capture_with_scale(c: &mut Criterion) {
 
     for scale in [0.5, 1.0, 2.0].iter() {
         group.bench_with_input(BenchmarkId::from_parameter(scale), scale, |b, &scale| {
+            let mut grim = Grim::new().expect("Failed to create Grim");
             b.iter(|| {
-                let mut grim = Grim::new().expect("Failed to create Grim");
                 let result = grim
                     .capture_all_with_scale(scale)
                     .expect("Failed to capture");
@@ -44,8 +44,8 @@ fn benchmark_capture_region(c: &mut Criterion) {
 
     for (name, region) in regions.iter() {
         group.bench_with_input(BenchmarkId::from_parameter(name), region, |b, region| {
+            let mut grim = Grim::new().expect("Failed to create Grim");
             b.iter(|| {
-                let mut grim = Grim::new().expect("Failed to create Grim");
                 let result = grim.capture_region(*region).expect("Failed to capture");
                 black_box(result);
             });
@@ -59,8 +59,8 @@ fn benchmark_get_outputs(c: &mut Criterion) {
     let mut group = c.benchmark_group("get_outputs");
 
     group.bench_function("get_outputs", |b| {
+        let mut grim = Grim::new().expect("Failed to create Grim");
         b.iter(|| {
-            let mut grim = Grim::new().expect("Failed to create Grim");
             let outputs = grim.get_outputs().expect("Failed to get outputs");
             black_box(outputs);
         });
