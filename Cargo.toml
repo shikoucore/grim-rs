@@ -22,14 +22,14 @@ name = "grim-rs"
 path = "src/bin/grim.rs"
 
 [dependencies]
-image = { version = "0.25", features = ["png"] }
-jpeg-encoder = { version = "0.6", optional = true }
-png = { version = "0.17", optional = true }
+image = { version = "0.25.8", features = ["png"] }
+jpeg-encoder = { version = "0.7.0", optional = true }
+png = { version = "0.17.0", optional = true }
 thiserror = "1.0"
 wayland-client = "0.31"
 wayland-protocols = { version = "0.32", features = ["client", "unstable"] }
 wayland-protocols-wlr = { version = "0.3", features = ["client"] }
-memmap2 = "0.9"
+memmap2 = "0.9.9"
 tempfile = "3.24.0"
 log = "0.4.29"
 chrono = "0.4.43"
