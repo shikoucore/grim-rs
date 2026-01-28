@@ -42,6 +42,8 @@ Add to your `Cargo.toml`:
 grim-rs = "{version}"
 ```
 
+**MSRV:** Rust 1.68+
+
 **Upgrading?** See the notes at the top of this README.
 
 ### Basic Capture Operations

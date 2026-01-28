@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependency update**: Bumped `memmap2` to v0.9.9.
 - **Dependency pin**: Kept `image` on v0.25.8 after testing showed regressions with newer versions.
 - **Dependency update**: Bumped `jpeg-encoder` to v0.7.0.
+- **Dependency update**: Bumped `thiserror` to v2.0.18.
+- **MSRV**: Minimum supported Rust version is now 1.68.
 
 ### Testing
 - **Integration test cleanup**: Moved `lib.rs` tests into the `tests/` suite and aligned assertions with public getters.
