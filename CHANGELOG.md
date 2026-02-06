@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Safe buffer sizing**: Added checked buffer size calculations with a global pixel limit to prevent overflow and OOM during capture, scaling, and compositing.
 
+### Performance
+- **Lower peak memory during PNG/JPEG encoding**: Removed redundant full-frame copies when encoding from RGBA buffers, reducing peak allocations on large images.
+
+### Documentation
+- **Profiling guide**: Added a step-by-step [profiling manual](doc/profiling_manual.md) with a reproducible workflow.
+
 ### Changed
 - **Dependency cleanup**: Removed unused `anyhow` and moved `env_logger` to dev-dependencies.
 - **Dependency update**: Bumped `log` to v0.4.29.

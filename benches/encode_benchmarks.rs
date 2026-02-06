@@ -1,5 +1,68 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use grim_rs::Grim;
+use std::path::PathBuf;
+
+#[cfg(unix)]
+struct StdoutSilencer {
+    saved_fd: i32,
+}
+
+#[cfg(unix)]
+impl StdoutSilencer {
+    fn new() -> Option<Self> {
+        unsafe {
+            let devnull = libc::open(b"/dev/null\0".as_ptr() as *const _, libc::O_WRONLY);
+            if devnull < 0 {
+                return None;
+            }
+            let saved = libc::dup(libc::STDOUT_FILENO);
+            if saved < 0 {
+                libc::close(devnull);
+                return None;
+            }
+            if libc::dup2(devnull, libc::STDOUT_FILENO) < 0 {
+                libc::close(devnull);
+                libc::close(saved);
+                return None;
+            }
+            libc::close(devnull);
+            Some(Self { saved_fd: saved })
+        }
+    }
+}
+
+#[cfg(unix)]
+impl Drop for StdoutSilencer {
+    fn drop(&mut self) {
+        unsafe {
+            libc::dup2(self.saved_fd, libc::STDOUT_FILENO);
+            libc::close(self.saved_fd);
+        }
+    }
+}
+
+#[cfg(not(unix))]
+struct StdoutSilencer;
+
+#[cfg(not(unix))]
+impl StdoutSilencer {
+    fn new() -> Option<Self> {
+        None
+    }
+}
+
+fn temp_path(prefix: &str, ext: &str, width: u32, height: u32) -> PathBuf {
+    let mut path = std::env::temp_dir();
+    path.push(format!(
+        "grim-rs-{}-{}x{}-{}.{}",
+        prefix,
+        width,
+        height,
+        std::process::id(),
+        ext
+    ));
+    path
+}
 
 fn generate_test_data(width: u32, height: u32) -> Vec<u8> {
     let size = (width * height * 4) as usize;
@@ -49,6 +112,51 @@ fn benchmark_png_compression_levels(c: &mut Criterion) {
                     .to_png_with_compression(&data, width, height, level)
                     .expect("Failed to encode PNG");
                 black_box(result);
+            });
+        });
+    }
+
+    group.finish();
+}
+
+fn benchmark_png_save(c: &mut Criterion) {
+    let mut group = c.benchmark_group("png_save");
+
+    let sizes = [
+        ("640x480", 640, 480),
+        ("1920x1080", 1920, 1080),
+        ("3840x2160", 3840, 2160),
+    ];
+
+    for (name, width, height) in sizes.iter() {
+        let data = generate_test_data(*width, *height);
+        let path = temp_path("save_png", "png", *width, *height);
+        group.bench_with_input(BenchmarkId::from_parameter(name), &data, |b, data| {
+            let grim = Grim::new().expect("Failed to create Grim");
+            b.iter(|| {
+                grim.save_png(data, *width, *height, &path)
+                    .expect("Failed to save PNG");
+            });
+        });
+    }
+
+    group.finish();
+}
+
+fn benchmark_png_save_compression_levels(c: &mut Criterion) {
+    let mut group = c.benchmark_group("png_save_compression_levels");
+
+    let width = 1920;
+    let height = 1080;
+    let data = generate_test_data(width, height);
+
+    for level in [1, 6, 9].iter() {
+        let path = temp_path(&format!("save_png_lvl{}", level), "png", width, height);
+        group.bench_with_input(BenchmarkId::from_parameter(level), level, |b, &level| {
+            let grim = Grim::new().expect("Failed to create Grim");
+            b.iter(|| {
+                grim.save_png_with_compression(&data, width, height, &path, level)
+                    .expect("Failed to save PNG");
             });
         });
     }
@@ -112,6 +220,57 @@ fn benchmark_jpeg_quality_levels(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(feature = "jpeg")]
+fn benchmark_jpeg_save(c: &mut Criterion) {
+    let mut group = c.benchmark_group("jpeg_save");
+
+    let sizes = [
+        ("640x480", 640, 480),
+        ("1920x1080", 1920, 1080),
+        ("3840x2160", 3840, 2160),
+    ];
+
+    for (name, width, height) in sizes.iter() {
+        let data = generate_test_data(*width, *height);
+        let path = temp_path("save_jpeg", "jpg", *width, *height);
+        group.bench_with_input(BenchmarkId::from_parameter(name), &data, |b, data| {
+            let grim = Grim::new().expect("Failed to create Grim");
+            b.iter(|| {
+                grim.save_jpeg(data, *width, *height, &path)
+                    .expect("Failed to save JPEG");
+            });
+        });
+    }
+
+    group.finish();
+}
+
+#[cfg(feature = "jpeg")]
+fn benchmark_jpeg_save_quality_levels(c: &mut Criterion) {
+    let mut group = c.benchmark_group("jpeg_save_quality_levels");
+
+    let width = 1920;
+    let height = 1080;
+    let data = generate_test_data(width, height);
+
+    for quality in [60, 80, 95].iter() {
+        let path = temp_path(&format!("save_jpeg_q{}", quality), "jpg", width, height);
+        group.bench_with_input(
+            BenchmarkId::from_parameter(quality),
+            quality,
+            |b, &quality| {
+                let grim = Grim::new().expect("Failed to create Grim");
+                b.iter(|| {
+                    grim.save_jpeg_with_quality(&data, width, height, &path, quality)
+                        .expect("Failed to save JPEG");
+                });
+            },
+        );
+    }
+
+    group.finish();
+}
+
 fn benchmark_ppm_encoding(c: &mut Criterion) {
     let mut group = c.benchmark_group("ppm_encoding");
 
@@ -140,14 +299,153 @@ fn benchmark_ppm_encoding(c: &mut Criterion) {
     group.finish();
 }
 
+fn benchmark_ppm_save(c: &mut Criterion) {
+    let mut group = c.benchmark_group("ppm_save");
+
+    let sizes = [
+        ("640x480", 640, 480),
+        ("1920x1080", 1920, 1080),
+        ("3840x2160", 3840, 2160),
+    ];
+
+    for (name, width, height) in sizes.iter() {
+        let data = generate_test_data(*width, *height);
+        let path = temp_path("save_ppm", "ppm", *width, *height);
+        group.bench_with_input(BenchmarkId::from_parameter(name), &data, |b, data| {
+            let grim = Grim::new().expect("Failed to create Grim");
+            b.iter(|| {
+                grim.save_ppm(data, *width, *height, &path)
+                    .expect("Failed to save PPM");
+            });
+        });
+    }
+
+    group.finish();
+}
+
+fn benchmark_png_stdout(c: &mut Criterion) {
+    let mut group = c.benchmark_group("png_stdout");
+
+    let width = 1920;
+    let height = 1080;
+    let data = generate_test_data(width, height);
+
+    group.bench_function("write_png_to_stdout", |b| {
+        let grim = Grim::new().expect("Failed to create Grim");
+        b.iter(|| {
+            let _silencer = StdoutSilencer::new().expect("Failed to silence stdout");
+            grim.write_png_to_stdout(&data, width, height)
+                .expect("Failed to write PNG");
+        });
+    });
+
+    group.finish();
+}
+
+fn benchmark_png_stdout_compression(c: &mut Criterion) {
+    let mut group = c.benchmark_group("png_stdout_compression");
+
+    let width = 1920;
+    let height = 1080;
+    let data = generate_test_data(width, height);
+
+    for level in [1, 6, 9].iter() {
+        group.bench_with_input(BenchmarkId::from_parameter(level), level, |b, &level| {
+            let grim = Grim::new().expect("Failed to create Grim");
+            b.iter(|| {
+                let _silencer = StdoutSilencer::new().expect("Failed to silence stdout");
+                grim.write_png_to_stdout_with_compression(&data, width, height, level)
+                    .expect("Failed to write PNG");
+            });
+        });
+    }
+
+    group.finish();
+}
+
+fn benchmark_ppm_stdout(c: &mut Criterion) {
+    let mut group = c.benchmark_group("ppm_stdout");
+
+    let width = 1920;
+    let height = 1080;
+    let data = generate_test_data(width, height);
+
+    group.bench_function("write_ppm_to_stdout", |b| {
+        let grim = Grim::new().expect("Failed to create Grim");
+        b.iter(|| {
+            let _silencer = StdoutSilencer::new().expect("Failed to silence stdout");
+            grim.write_ppm_to_stdout(&data, width, height)
+                .expect("Failed to write PPM");
+        });
+    });
+
+    group.finish();
+}
+
+#[cfg(feature = "jpeg")]
+fn benchmark_jpeg_stdout(c: &mut Criterion) {
+    let mut group = c.benchmark_group("jpeg_stdout");
+
+    let width = 1920;
+    let height = 1080;
+    let data = generate_test_data(width, height);
+
+    group.bench_function("write_jpeg_to_stdout", |b| {
+        let grim = Grim::new().expect("Failed to create Grim");
+        b.iter(|| {
+            let _silencer = StdoutSilencer::new().expect("Failed to silence stdout");
+            grim.write_jpeg_to_stdout(&data, width, height)
+                .expect("Failed to write JPEG");
+        });
+    });
+
+    group.finish();
+}
+
+#[cfg(feature = "jpeg")]
+fn benchmark_jpeg_stdout_quality(c: &mut Criterion) {
+    let mut group = c.benchmark_group("jpeg_stdout_quality");
+
+    let width = 1920;
+    let height = 1080;
+    let data = generate_test_data(width, height);
+
+    for quality in [60, 80, 95].iter() {
+        group.bench_with_input(
+            BenchmarkId::from_parameter(quality),
+            quality,
+            |b, &quality| {
+                let grim = Grim::new().expect("Failed to create Grim");
+                b.iter(|| {
+                    let _silencer = StdoutSilencer::new().expect("Failed to silence stdout");
+                    grim.write_jpeg_to_stdout_with_quality(&data, width, height, quality)
+                        .expect("Failed to write JPEG");
+                });
+            },
+        );
+    }
+
+    group.finish();
+}
+
 #[cfg(feature = "jpeg")]
 criterion_group!(
     benches,
     benchmark_png_encoding,
     benchmark_png_compression_levels,
+    benchmark_png_save,
+    benchmark_png_save_compression_levels,
     benchmark_jpeg_encoding,
     benchmark_jpeg_quality_levels,
-    benchmark_ppm_encoding
+    benchmark_jpeg_save,
+    benchmark_jpeg_save_quality_levels,
+    benchmark_ppm_encoding,
+    benchmark_ppm_save,
+    benchmark_png_stdout,
+    benchmark_png_stdout_compression,
+    benchmark_ppm_stdout,
+    benchmark_jpeg_stdout,
+    benchmark_jpeg_stdout_quality
 );
 
 #[cfg(not(feature = "jpeg"))]
@@ -155,7 +453,13 @@ criterion_group!(
     benches,
     benchmark_png_encoding,
     benchmark_png_compression_levels,
-    benchmark_ppm_encoding
+    benchmark_png_save,
+    benchmark_png_save_compression_levels,
+    benchmark_ppm_encoding,
+    benchmark_ppm_save,
+    benchmark_png_stdout,
+    benchmark_png_stdout_compression,
+    benchmark_ppm_stdout
 );
 
 criterion_main!(benches);

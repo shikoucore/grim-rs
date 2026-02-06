@@ -39,6 +39,8 @@ env_logger = "0.10"
 regex = "1.10"
 proptest = "1.4"
 criterion = { version = "0.5", features = ["html_reports"] }
+libc = "0.2"
+dhat = "0.3"
 
 [[bench]]
 name = "capture_benchmarks"
@@ -46,6 +48,10 @@ harness = false
 
 [[bench]]
 name = "encode_benchmarks"
+harness = false
+
+[[bench]]
+name = "alloc_profiler"
 harness = false
 
 [features]

@@ -142,8 +142,9 @@ fn main() -> grim_rs::Result<()> {
             }
             let multi_result =
                 grim.capture_outputs_with_scale(vec![params], opts.scale.unwrap_or(1.0))?;
-            if let Some(capture_result) = multi_result.get(output_name) {
-                capture_result.clone()
+            let mut outputs = multi_result.into_outputs();
+            if let Some(capture_result) = outputs.remove(output_name.as_str()) {
+                capture_result
             } else {
                 return Err(grim_rs::Error::OutputNotFound(output_name.clone()));
             }
