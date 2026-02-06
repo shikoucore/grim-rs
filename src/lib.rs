@@ -649,16 +649,30 @@ impl Grim {
         path: P,
         compression: u8,
     ) -> Result<()> {
-        use image::{ImageBuffer, Rgba};
         use std::io::BufWriter;
 
-        let _img = ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, data.to_vec()).ok_or(
+        let pixels = u64::from(width) * u64::from(height);
+        let expected = pixels.checked_mul(4).ok_or_else(|| {
             Error::ImageProcessing(image::ImageError::Parameter(
                 image::error::ParameterError::from_kind(
                     image::error::ParameterErrorKind::DimensionMismatch,
                 ),
-            )),
-        )?;
+            ))
+        })?;
+        if expected > usize::MAX as u64 {
+            return Err(Error::ImageProcessing(image::ImageError::Parameter(
+                image::error::ParameterError::from_kind(
+                    image::error::ParameterErrorKind::DimensionMismatch,
+                ),
+            )));
+        }
+        if data.len() != expected as usize {
+            return Err(Error::ImageProcessing(image::ImageError::Parameter(
+                image::error::ParameterError::from_kind(
+                    image::error::ParameterErrorKind::DimensionMismatch,
+                ),
+            )));
+        }
 
         let file = std::fs::File::create(&path).map_err(|e| Error::IoWithContext {
             operation: format!("creating output file '{}'", path.as_ref().display()),
@@ -795,28 +809,53 @@ impl Grim {
         path: P,
         quality: u8,
     ) -> Result<()> {
-        use image::{buffer::ConvertBuffer, ImageBuffer, Rgb, Rgba};
-
-        let rgba_img = ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, data.to_vec()).ok_or(
+        let pixels = u64::from(width) * u64::from(height);
+        let expected = pixels.checked_mul(4).ok_or_else(|| {
             Error::ImageProcessing(image::ImageError::Parameter(
                 image::error::ParameterError::from_kind(
                     image::error::ParameterErrorKind::DimensionMismatch,
                 ),
-            )),
-        )?;
-
-        let rgb_img: ImageBuffer<Rgb<u8>, Vec<u8>> = rgba_img.convert();
+            ))
+        })?;
+        if expected > usize::MAX as u64 {
+            return Err(Error::ImageProcessing(image::ImageError::Parameter(
+                image::error::ParameterError::from_kind(
+                    image::error::ParameterErrorKind::DimensionMismatch,
+                ),
+            )));
+        }
+        if data.len() != expected as usize {
+            return Err(Error::ImageProcessing(image::ImageError::Parameter(
+                image::error::ParameterError::from_kind(
+                    image::error::ParameterErrorKind::DimensionMismatch,
+                ),
+            )));
+        }
+        let pixels = expected as usize / 4;
+        let rgb_len = pixels.checked_mul(3).ok_or_else(|| {
+            Error::ImageProcessing(image::ImageError::Parameter(
+                image::error::ParameterError::from_kind(
+                    image::error::ParameterErrorKind::DimensionMismatch,
+                ),
+            ))
+        })?;
+        let mut rgb_data = vec![0u8; rgb_len];
+        for (i, rgba) in data.chunks_exact(4).enumerate() {
+            let base = i * 3;
+            rgb_data[base] = rgba[0];
+            rgb_data[base + 1] = rgba[1];
+            rgb_data[base + 2] = rgba[2];
+        }
 
         let mut output_file = std::fs::File::create(&path).map_err(|e| Error::IoWithContext {
             operation: format!("creating output file '{}'", path.as_ref().display()),
             source: e,
         })?;
         let mut _encoder = jpeg_encoder::Encoder::new(&mut output_file, quality);
-        let rgb_data = rgb_img.as_raw();
 
         _encoder
             .encode(
-                rgb_data,
+                &rgb_data,
                 width as u16,
                 height as u16,
                 jpeg_encoder::ColorType::Rgb,
@@ -958,25 +997,50 @@ impl Grim {
         height: u32,
         quality: u8,
     ) -> Result<Vec<u8>> {
-        use image::{buffer::ConvertBuffer, ImageBuffer, Rgb, Rgba};
-
-        let rgba_img = ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, data.to_vec()).ok_or(
+        let pixels = u64::from(width) * u64::from(height);
+        let expected = pixels.checked_mul(4).ok_or_else(|| {
             Error::ImageProcessing(image::ImageError::Parameter(
                 image::error::ParameterError::from_kind(
                     image::error::ParameterErrorKind::DimensionMismatch,
                 ),
-            )),
-        )?;
-
-        let rgb_img: ImageBuffer<Rgb<u8>, Vec<u8>> = rgba_img.convert();
+            ))
+        })?;
+        if expected > usize::MAX as u64 {
+            return Err(Error::ImageProcessing(image::ImageError::Parameter(
+                image::error::ParameterError::from_kind(
+                    image::error::ParameterErrorKind::DimensionMismatch,
+                ),
+            )));
+        }
+        if data.len() != expected as usize {
+            return Err(Error::ImageProcessing(image::ImageError::Parameter(
+                image::error::ParameterError::from_kind(
+                    image::error::ParameterErrorKind::DimensionMismatch,
+                ),
+            )));
+        }
+        let pixels = expected as usize / 4;
+        let rgb_len = pixels.checked_mul(3).ok_or_else(|| {
+            Error::ImageProcessing(image::ImageError::Parameter(
+                image::error::ParameterError::from_kind(
+                    image::error::ParameterErrorKind::DimensionMismatch,
+                ),
+            ))
+        })?;
+        let mut rgb_data = vec![0u8; rgb_len];
+        for (i, rgba) in data.chunks_exact(4).enumerate() {
+            let base = i * 3;
+            rgb_data[base] = rgba[0];
+            rgb_data[base + 1] = rgba[1];
+            rgb_data[base + 2] = rgba[2];
+        }
 
         let mut jpeg_data = Vec::new();
         let mut _encoder = jpeg_encoder::Encoder::new(&mut jpeg_data, quality);
-        let rgb_data = rgb_img.as_raw();
 
         _encoder
             .encode(
-                rgb_data,
+                &rgb_data,
                 width as u16,
                 height as u16,
                 jpeg_encoder::ColorType::Rgb,
@@ -1103,16 +1167,30 @@ impl Grim {
         height: u32,
         compression: u8,
     ) -> Result<Vec<u8>> {
-        use image::{ImageBuffer, Rgba};
         use std::io::Cursor;
 
-        let _img = ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, data.to_vec()).ok_or(
+        let pixels = u64::from(width) * u64::from(height);
+        let expected = pixels.checked_mul(4).ok_or_else(|| {
             Error::ImageProcessing(image::ImageError::Parameter(
                 image::error::ParameterError::from_kind(
                     image::error::ParameterErrorKind::DimensionMismatch,
                 ),
-            )),
-        )?;
+            ))
+        })?;
+        if expected > usize::MAX as u64 {
+            return Err(Error::ImageProcessing(image::ImageError::Parameter(
+                image::error::ParameterError::from_kind(
+                    image::error::ParameterErrorKind::DimensionMismatch,
+                ),
+            )));
+        }
+        if data.len() != expected as usize {
+            return Err(Error::ImageProcessing(image::ImageError::Parameter(
+                image::error::ParameterError::from_kind(
+                    image::error::ParameterErrorKind::DimensionMismatch,
+                ),
+            )));
+        }
 
         let mut output = Vec::new();
         {
@@ -1412,7 +1490,7 @@ impl Grim {
     /// Returns an error if:
     /// - Failed to write to stdout
     /// - Image processing failed
-    /// - JPEG support is not enabled
+    /// - JPEG support is not enabledvidence: lib.rs Symbol: to_png_with_compression
     ///
     /// # Example
     ///
@@ -1475,104 +1553,5 @@ impl Grim {
         handle.write_all(&ppm_data)?;
         handle.flush()?;
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_geometry_parsing() {
-        let geometry: Box = "100,200 800x600".parse().unwrap();
-        assert_eq!(geometry.x(), 100);
-        assert_eq!(geometry.y(), 200);
-        assert_eq!(geometry.width(), 800);
-        assert_eq!(geometry.height(), 600);
-    }
-
-    #[test]
-    fn test_mock_capture() {
-        let result = std::panic::catch_unwind(|| {
-            let mut grim = Grim::new().unwrap();
-            grim.capture_all()
-        });
-
-        match result {
-            Ok(capture_result) => {
-                if let Ok(capture) = capture_result {
-                    assert_eq!(
-                        capture.data.len(),
-                        (capture.width * capture.height * 4) as usize
-                    );
-                } else {
-                    assert!(matches!(capture_result, Err(Error::NoOutputs)));
-                }
-            }
-            Err(_) => {
-                panic!("Test panicked unexpectedly");
-            }
-        }
-    }
-
-    #[test]
-    #[cfg(feature = "png")]
-    fn test_to_png() {
-        let grim = Grim::new().unwrap();
-        let test_data = vec![255u8; 64];
-        let png_data = grim.to_png(&test_data, 4, 4).unwrap();
-        assert!(!png_data.is_empty());
-    }
-
-    #[test]
-    #[cfg(feature = "jpeg")]
-    fn test_to_jpeg() {
-        let grim = Grim::new().unwrap();
-        let test_data = vec![255u8; 64];
-        let jpeg_data = grim.to_jpeg(&test_data, 4, 4).unwrap();
-        assert!(!jpeg_data.is_empty());
-    }
-
-    #[test]
-    #[cfg(not(feature = "jpeg"))]
-    fn test_jpeg_disabled() {
-        let grim = Grim::new().unwrap();
-        let test_data = vec![255u8; 16];
-        let jpeg_result = grim.to_jpeg(&test_data, 4, 4);
-        assert!(jpeg_result.is_err());
-    }
-
-    #[test]
-    fn test_ppm_format() {
-        let grim = Grim::new().unwrap();
-        let test_data = vec![255u8; 16];
-        let ppm_result = grim.to_ppm(&test_data, 2, 2);
-        assert!(ppm_result.is_ok());
-        let ppm_data = ppm_result.unwrap();
-        assert!(ppm_data.starts_with(b"P6\n2 2\n255\n"));
-        assert!(ppm_data.len() >= 12);
-    }
-
-    #[test]
-    fn test_read_region_from_stdin() {
-        let region_str = "10,20 300x400";
-        let result: std::result::Result<Box, _> = region_str.parse();
-        assert!(result.is_ok());
-        let region = result.unwrap();
-        assert_eq!(region.x(), 10);
-        assert_eq!(region.y(), 20);
-        assert_eq!(region.width(), 300);
-        assert_eq!(region.height(), 400);
-    }
-
-    #[test]
-    fn test_scale_functionality() {
-        let mut grim = Grim::new().unwrap();
-        let test_capture = grim.capture_all_with_scale(1.0);
-        match test_capture {
-            Ok(_) => {}
-            Err(Error::NoOutputs) => {}
-            Err(e) => panic!("Unexpected error: {:?}", e),
-        }
     }
 }

@@ -26,6 +26,68 @@ use wayland_protocols::xdg::xdg_output::zv1::client::{
 };
 
 const MAX_ATTEMPTS: usize = 100;
+/// Global upper bound for pixel count used by `checked_buffer_size()`.
+///
+/// This limit is enforced for all image/buffer allocations that are derived
+/// from width/height in this module, including:
+/// - `capture_region_for_output()` (Wayland buffer allocation via stride×height)
+/// - `capture_outputs()` (per-output buffer allocation)
+/// - `composite_region()` (final composited image buffer)
+/// - `scale_image_data()` and `scale_image_integer_fast()` (scaled image buffers)
+/// - `ZwlrScreencopyFrameV1::Buffer` event handling (frame buffer placeholder)
+///
+/// The goal is to prevent integer overflows and avoid OOM from extreme sizes.
+const MAX_PIXELS: u64 = 134_217_728;
+
+/// Compute a safe buffer size in bytes for image-like data.
+///
+/// What it does:
+/// - Validates `width × height` without overflow.
+/// - Enforces the global `MAX_PIXELS` limit.
+/// - Computes the byte size either as `width × height × bytes_per_pixel`
+///   or as `row_stride_bytes × height` when a stride is provided.
+///
+/// Where it is used:
+/// - All large allocations in this module (capture, composite, scaling, and
+///   Wayland buffer handling) call this helper before allocating memory.
+///
+/// When to use it:
+/// - Call this helper whenever you are about to allocate a buffer whose size
+///   depends on `width × height` (and optionally row stride).
+/// - Use it for any new code path that creates `Vec<u8>` for image data or
+///   sizes a file/mmap based on image dimensions.
+///
+/// What it gives:
+/// - A checked `usize` byte size that is safe to pass to `vec![0u8; size]`
+///   or file/mmap sizing, avoiding OOM due to extreme dimensions.
+fn checked_buffer_size(
+    width: u32,
+    height: u32,
+    bytes_per_pixel: u32,
+    row_stride_bytes: Option<u32>,
+) -> Result<usize> {
+    let pixels = (width as u64)
+        .checked_mul(height as u64)
+        .ok_or_else(|| Error::InvalidRegion("Image dimensions overflow".to_string()))?;
+
+    if pixels > MAX_PIXELS {
+        return Err(Error::InvalidRegion(format!(
+            "Image exceeds maximum pixel limit ({})",
+            MAX_PIXELS
+        )));
+    }
+
+    let bytes = match row_stride_bytes {
+        Some(stride) => (stride as u64)
+            .checked_mul(height as u64)
+            .ok_or_else(|| Error::BufferCreation("Buffer size overflow".to_string()))?,
+        None => pixels
+            .checked_mul(bytes_per_pixel as u64)
+            .ok_or_else(|| Error::BufferCreation("Buffer size overflow".to_string()))?,
+    };
+
+    usize::try_from(bytes).map_err(|_| Error::BufferCreation("Buffer size overflow".to_string()))
+}
 
 /// Apply output transformation to width and height.
 ///
@@ -476,7 +538,7 @@ impl WaylandCapture {
             let width = state.width;
             let height = state.height;
             let stride = width * 4;
-            let size = (stride * height) as usize;
+            let size = checked_buffer_size(width, height, 4, Some(stride))?;
             let format = state.format.unwrap_or(ShmFormat::Xrgb8888);
             (width, height, stride, size, format)
         };
@@ -600,9 +662,16 @@ impl WaylandCapture {
             ));
         }
 
-        let dest_width = region.width() as usize;
-        let dest_height = region.height() as usize;
-        let mut dest = vec![0u8; dest_width * dest_height * 4];
+        let dest_width_u32 = u32::try_from(region.width()).map_err(|_| {
+            Error::InvalidRegion("Capture region width exceeds supported range".to_string())
+        })?;
+        let dest_height_u32 = u32::try_from(region.height()).map_err(|_| {
+            Error::InvalidRegion("Capture region height exceeds supported range".to_string())
+        })?;
+        let dest_bytes = checked_buffer_size(dest_width_u32, dest_height_u32, 4, None)?;
+        let dest_width = dest_width_u32 as usize;
+        let dest_height = dest_height_u32 as usize;
+        let mut dest = vec![0u8; dest_bytes];
         let mut any_capture = false;
 
         for (output, info) in outputs {
@@ -797,6 +866,7 @@ impl WaylandCapture {
                 "Scaled dimensions must be positive".to_string(),
             ));
         }
+        checked_buffer_size(new_width, new_height, 4, None)?;
 
         use image::{imageops, ImageBuffer, Rgba};
 
@@ -849,8 +919,15 @@ impl WaylandCapture {
         let old_height = capture.height as usize;
         let new_width = old_width * (factor as usize);
         let new_height = old_height * (factor as usize);
+        let new_width_u32 = u32::try_from(new_width).map_err(|_| {
+            Error::ScalingFailed("Scaled width exceeds supported range".to_string())
+        })?;
+        let new_height_u32 = u32::try_from(new_height).map_err(|_| {
+            Error::ScalingFailed("Scaled height exceeds supported range".to_string())
+        })?;
+        let new_bytes = checked_buffer_size(new_width_u32, new_height_u32, 4, None)?;
 
-        let mut new_data = vec![0u8; new_width * new_height * 4];
+        let mut new_data = vec![0u8; new_bytes];
 
         for old_y in 0..old_height {
             for old_x in 0..old_width {
@@ -997,7 +1074,7 @@ impl WaylandCapture {
                 let width = state.width;
                 let height = state.height;
                 let stride = width * 4;
-                let size = (stride * height) as usize;
+                let size = checked_buffer_size(width, height, 4, Some(stride))?;
                 (width, height, stride, size)
             };
             let mut tmp_file = tempfile::NamedTempFile::new().map_err(|e| {
@@ -1363,7 +1440,19 @@ impl Dispatch<ZwlrScreencopyFrameV1, Arc<Mutex<FrameState>>> for WaylandCapture 
                 if let wayland_client::WEnum::Value(val) = format {
                     state.format = Some(val);
                 }
-                state.buffer = Some(vec![0u8; (stride * height) as usize]);
+                match checked_buffer_size(width, height, 4, Some(stride)) {
+                    Ok(size) => {
+                        state.buffer = Some(vec![0u8; size]);
+                    }
+                    Err(err) => {
+                        log::error!(
+                            "Dropping screencopy Buffer event due to size check failure: {}",
+                            err
+                        );
+                        state.buffer = None;
+                        state.ready = true;
+                    }
+                }
             }
             Event::Flags { flags } => {
                 let mut state = match lock_frame_state(frame_state) {

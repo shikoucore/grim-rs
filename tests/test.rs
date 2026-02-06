@@ -1,4 +1,4 @@
-use grim_rs::{Box as GrimBox, CaptureParameters, CaptureResult, Grim};
+use grim_rs::{Box as GrimBox, CaptureParameters, CaptureResult, Error, Grim};
 use std::collections::HashMap;
 
 #[test]
@@ -489,5 +489,90 @@ mod y_invert_tests {
 
         let flags_with_invert: u32 = 1;
         assert_eq!(flags_with_invert, 1);
+    }
+}
+
+#[test]
+fn test_mock_capture() {
+    let result = std::panic::catch_unwind(|| {
+        let mut grim = Grim::new().unwrap();
+        grim.capture_all()
+    });
+
+    match result {
+        Ok(capture_result) => {
+            if let Ok(capture) = capture_result {
+                assert_eq!(
+                    capture.data().len(),
+                    (capture.width() * capture.height() * 4) as usize
+                );
+            } else {
+                assert!(matches!(capture_result, Err(Error::NoOutputs)));
+            }
+        }
+        Err(_) => {
+            panic!("Test panicked unexpectedly");
+        }
+    }
+}
+
+#[test]
+#[cfg(feature = "png")]
+fn test_to_png() {
+    let grim = Grim::new().unwrap();
+    let test_data = vec![255u8; 64];
+    let png_data = grim.to_png(&test_data, 4, 4).unwrap();
+    assert!(!png_data.is_empty());
+}
+
+#[test]
+#[cfg(feature = "jpeg")]
+fn test_to_jpeg() {
+    let grim = Grim::new().unwrap();
+    let test_data = vec![255u8; 64];
+    let jpeg_data = grim.to_jpeg(&test_data, 4, 4).unwrap();
+    assert!(!jpeg_data.is_empty());
+}
+
+#[test]
+#[cfg(not(feature = "jpeg"))]
+fn test_jpeg_disabled() {
+    let grim = Grim::new().unwrap();
+    let test_data = vec![255u8; 16];
+    let jpeg_result = grim.to_jpeg(&test_data, 4, 4);
+    assert!(jpeg_result.is_err());
+}
+
+#[test]
+fn test_ppm_format() {
+    let grim = Grim::new().unwrap();
+    let test_data = vec![255u8; 16];
+    let ppm_result = grim.to_ppm(&test_data, 2, 2);
+    assert!(ppm_result.is_ok());
+    let ppm_data = ppm_result.unwrap();
+    assert!(ppm_data.starts_with(b"P6\n2 2\n255\n"));
+    assert!(ppm_data.len() >= 12);
+}
+
+#[test]
+fn test_read_region_from_stdin() {
+    let region_str = "10,20 300x400";
+    let result: std::result::Result<GrimBox, _> = region_str.parse();
+    assert!(result.is_ok());
+    let region = result.unwrap();
+    assert_eq!(region.x(), 10);
+    assert_eq!(region.y(), 20);
+    assert_eq!(region.width(), 300);
+    assert_eq!(region.height(), 400);
+}
+
+#[test]
+fn test_scale_functionality() {
+    let mut grim = Grim::new().unwrap();
+    let test_capture = grim.capture_all_with_scale(1.0);
+    match test_capture {
+        Ok(_) => {}
+        Err(Error::NoOutputs) => {}
+        Err(e) => panic!("Unexpected error: {:?}", e),
     }
 }

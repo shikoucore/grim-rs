@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5]
+
+### Fixed
+- **Safe buffer sizing**: Added checked buffer size calculations with a global pixel limit to prevent overflow and OOM during capture, scaling, and compositing.
+
+### Performance
+- **Lower peak memory during PNG/JPEG encoding**: Removed redundant full-frame copies when encoding from RGBA buffers, reducing peak allocations on large images.
+
+### Documentation
+- **Profiling guide**: Added a step-by-step [profiling manual](doc/profiling_manual.md) with a reproducible workflow.
+
+### Changed
+- **Dependency cleanup**: Removed unused `anyhow` and moved `env_logger` to dev-dependencies.
+- **Dependency update**: Bumped `log` to v0.4.29.
+- **Dependency update**: Bumped `chrono` to v0.4.43.
+- **Dependency update**: Bumped `tempfile` to v3.24.0.
+- **Dependency update**: Bumped `memmap2` to v0.9.9.
+- **Dependency pin**: Kept `image` on v0.25.8 after testing showed regressions with newer versions.
+- **Dependency update**: Bumped `jpeg-encoder` to v0.7.0.
+- **Dependency update**: Bumped `thiserror` to v2.0.18.
+- **MSRV**: Minimum supported Rust version is now 1.68.
+
+### Testing
+- **Integration test cleanup**: Moved `lib.rs` tests into the `tests/` suite and aligned assertions with public getters.
+
 ## [0.1.4]
 
 ### Fixed
