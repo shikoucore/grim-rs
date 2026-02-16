@@ -8,15 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.5] 2026-02-06
 
 ### Fixed
+
 - **Safe buffer sizing**: Added checked buffer size calculations with a global pixel limit to prevent overflow and OOM during capture, scaling, and compositing.
 
 ### Performance
+
 - **Lower peak memory during PNG/JPEG encoding**: Removed redundant full-frame copies when encoding from RGBA buffers, reducing peak allocations on large images.
 
 ### Documentation
+
 - **Profiling guide**: Added a step-by-step [profiling manual](doc/profiling_manual.md) with a reproducible workflow.
 
 ### Changed
+
 - **Dependency cleanup**: Removed unused `anyhow` and moved `env_logger` to dev-dependencies.
 - **Dependency update**: Bumped `log` to v0.4.29.
 - **Dependency update**: Bumped `chrono` to v0.4.43.
@@ -28,16 +32,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MSRV**: Minimum supported Rust version is now 1.68.
 
 ### Testing
+
 - **Integration test cleanup**: Moved `lib.rs` tests into the `tests/` suite and aligned assertions with public getters.
 
 ## [0.1.4]
 
 ### Fixed
+
 - **Wayland region capture under fractional scaling**: Corrected logical/physical mapping by using a fractional logical scale (when available) and floor/ceil rounding to avoid incorrect region sizes. Fixes [#9](https://github.com/shikoucore/grim-rs/issues/9), [@Jeremis70](https://github.com/Jeremis70).
 
 ## [0.1.3] - 2025-10-11
 
 ### Changed
+
 - **Box struct encapsulation**: Made all fields (`x`, `y`, `width`, `height`) private
   - Added getter methods: `x()`, `y()`, `width()`, `height()`
   - Migration: [doc](./MIGRATION.md)
@@ -60,9 +67,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Migration: [doc](./MIGRATION.md)
 
 ### Fixed
+
 - **Critical bug in `capture_outputs()`**: Fixed issue where all captures used the first output instead of the specific output for each parameter.
 
 ### Improved
+
 - Better API design following Rust conventions
 - More efficient data access with `data()` returning `&[u8]` slice instead of owned `Vec<u8>`
 - Ownership transfer optimization with `into_data()` method
@@ -70,31 +79,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created `lock_frame_state()` helper function for safe mutex locking. Prevents panics from poisoned mutex errors
 - Removed `impl Default for Grim` to follow Rust API guidelines (Default should not panic)
 - Code quality improvements following Rust best practices:
-    - Removed unnecessary parentheses around `let` expressions
-    - Simplified duplicate conditional branches in image scaling filter selection
-    - Replaced manual range checks with `.contains()` method for clearer intent
-    - Replaced verbose `match` statements with `if let` for single-pattern destructuring
-    - Replaced `Iterator::flatten()` with `map_while(Result::ok)` to prevent potential infinite loops on errors
-    - Replaced unnecessary `vec![]` allocations with stack-allocated arrays where heap allocation not needed
-    - Removed needless borrows in multiple locations for cleaner code
-    - Replaced `.map_or(false, |s| ...)` with `.is_some_and(|s| ...)` for better readability
-    - Removed unused functions: `get_output_rotation()`, `get_output_flipped()`, `check_outputs_overlap()`, `is_grid_aligned()`
-    - Removed unused variables: `_grid_aligned`, `_scaled_region`
-    - Created clean function hierarchy: `save_or_write_result()` → format dispatchers → format-specific handlers
-    - Improved maintainability: each function has single responsibility
-    - Centralized error handling with proper `#[cfg(feature = "jpeg")]` attributes
+  - Removed unnecessary parentheses around `let` expressions
+  - Simplified duplicate conditional branches in image scaling filter selection
+  - Replaced manual range checks with `.contains()` method for clearer intent
+  - Replaced verbose `match` statements with `if let` for single-pattern destructuring
+  - Replaced `Iterator::flatten()` with `map_while(Result::ok)` to prevent potential infinite loops on errors
+  - Replaced unnecessary `vec![]` allocations with stack-allocated arrays where heap allocation not needed
+  - Removed needless borrows in multiple locations for cleaner code
+  - Replaced `.map_or(false, |s| ...)` with `.is_some_and(|s| ...)` for better readability
+  - Removed unused functions: `get_output_rotation()`, `get_output_flipped()`, `check_outputs_overlap()`, `is_grid_aligned()`
+  - Removed unused variables: `_grid_aligned`, `_scaled_region`
+  - Created clean function hierarchy: `save_or_write_result()` → format dispatchers → format-specific handlers
+  - Improved maintainability: each function has single responsibility
+  - Centralized error handling with proper `#[cfg(feature = "jpeg")]` attributes
 
 ### Performance
+
 - Optimized memory usage by removing unnecessary cloning:
   - Eliminated redundant `WlOutput` clone in `capture_region()` that was immediately borrowed
   - Reduced Arc reference counting overhead by one clone per output in multi-monitor scenarios
 
 ### Testing
+
 - Added comprehensive test coverage
 
 ## [0.1.2] - 2025-10-04
 
 ### Fixed issues: [#2](https://github.com/vremyavnikuda/grim-rs/issues/2)
+
 - **Multi-Monitor Capture Compositing**: Fixed critical issue where capturing multiple monitors would overlay images on top of each other instead of placing them side-by-side
   - Root cause: Mixing of logical and physical coordinates during image composition
   - Solution: Proper coordinate transformation between logical and physical spaces with scale factor handling
@@ -112,11 +124,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `capture_all()` and `capture_all_with_scale()` - calculate bounding box using logical coordinates
 
 ### Performance
+
 - Multi-monitor capture now correctly positions images without overlapping, resulting in expected memory usage and correct visual output
 
 ## [0.1.1] - 2025-10-04
 
 ### Added
+
 - **Output Transform Support**: Full support for all 8 Wayland output transform types (Normal, 90°, 180°, 270°, Flipped, Flipped90, Flipped180, Flipped270)
   - Automatic detection and application of display rotation/flipping
   - Functions: `apply_output_transform()`, `apply_image_transform()`, `rotate_90/180/270()`, `flip_horizontal/vertical()`
@@ -170,6 +184,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Consistent with Wayland protocol specifications for output metadata
 
 ### Changed
+
 - **Multi-Monitor Compositing**: Simplified `capture_region()` implementation
   - Reduced from 162 lines to 4 lines (-158 lines)
   - Now properly calls `composite_region()` for correct multi-monitor handling
@@ -185,10 +200,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Easier to identify and sort screenshots by date/time
 
 ### Dependencies
+
 - **Added**: `chrono = "0.4"` for improved datetime formatting in filenames
 - **Added**: `regex = "1.10"` (dev-dependency) for filename format testing
 
 ### Fixed
+
 - Multi-monitor region capture now correctly composites images from multiple outputs
 - Output transform handling ensures screenshots are correctly oriented on rotated/flipped displays
 - Y-invert flag properly handled for compositors that require vertical flipping
@@ -196,16 +213,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fallback `guess_output_logical_geometry()` for systems without xdg_output_manager
 
 ### Performance
+
 - Adaptive scaling algorithm selection optimizes speed vs quality trade-off
 - Grid-aligned compositing detection enables optimized rendering path for non-overlapping monitors
 - Direct memory copy (SRC mode) used when outputs don't overlap, avoiding unnecessary alpha blending
 
 ### Documentation
+
 - Updated README.md with comprehensive API reference and usage examples
 
 ## [0.1.0] - 2025-09-23
 
 ### Added
+
 - Initial release of grim-rs
 - Pure Rust implementation of grim screenshot utility for Wayland
 - Support for capturing entire screen (all outputs)
@@ -217,12 +237,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive API documentation
 
 ### Changed
+
 - Improved Wayland event handling
 - Fixed hardcoded default values for outputs
 - Enhanced error handling with more informative messages
 - Better handling of output information mapping between wl_output and internal structures
 
 ### Fixed
+
 - Removed debug prints from wayland_capture.rs
 - Corrected buffer creation and management
 - Fixed timeout handling when waiting for Wayland events
