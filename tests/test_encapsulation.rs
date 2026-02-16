@@ -44,7 +44,7 @@ fn capture_parameters_builder_pattern_works() {
 
     assert_eq!(params.output_name(), "HDMI-A-1");
     assert_eq!(params.region_ref(), Some(&region));
-    assert_eq!(params.overlay_cursor_enabled(), true);
+    assert!(params.overlay_cursor_enabled());
     assert_eq!(params.scale_factor(), Some(2.0));
 }
 
@@ -54,7 +54,7 @@ fn capture_parameters_minimal_construction() {
 
     assert_eq!(params.output_name(), "eDP-1");
     assert_eq!(params.region_ref(), None);
-    assert_eq!(params.overlay_cursor_enabled(), false);
+    assert!(!params.overlay_cursor_enabled());
     assert_eq!(params.scale_factor(), None);
 }
 
@@ -79,7 +79,7 @@ fn capture_parameters_partial_builder() {
 
     assert_eq!(params.output_name(), "HDMI-A-2");
     assert_eq!(params.region_ref(), None);
-    assert_eq!(params.overlay_cursor_enabled(), true);
+    assert!(params.overlay_cursor_enabled());
     assert_eq!(params.scale_factor(), None);
 }
 

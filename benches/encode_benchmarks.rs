@@ -1,5 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use grim_rs::Grim;
+#[cfg(unix)]
+use std::ffi::CString;
 use std::path::PathBuf;
 
 #[cfg(unix)]
@@ -11,7 +13,8 @@ struct StdoutSilencer {
 impl StdoutSilencer {
     fn new() -> Option<Self> {
         unsafe {
-            let devnull = libc::open(b"/dev/null\0".as_ptr() as *const _, libc::O_WRONLY);
+            let devnull_path = CString::new("/dev/null").ok()?;
+            let devnull = libc::open(devnull_path.as_ptr(), libc::O_WRONLY);
             if devnull < 0 {
                 return None;
             }

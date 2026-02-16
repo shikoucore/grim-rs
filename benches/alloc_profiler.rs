@@ -259,11 +259,11 @@ fn run_case(kind: &str, width: u32, height: u32, out_file: &str) -> grim_rs::Res
 }
 
 fn spawn_cases() -> grim_rs::Result<()> {
-    let exe = env::current_exe().map_err(|e| grim_rs::Error::Io(e))?;
+    let exe = env::current_exe().map_err(grim_rs::Error::Io)?;
     let sizes = [(640, 480), (1920, 1080), (3840, 2160)];
 
     let output_dir = "target/dhat";
-    fs::create_dir_all(output_dir).map_err(|e| grim_rs::Error::Io(e))?;
+    fs::create_dir_all(output_dir).map_err(grim_rs::Error::Io)?;
 
     let kinds = [
         "png",
@@ -297,7 +297,7 @@ fn spawn_cases() -> grim_rs::Result<()> {
                 .arg("--out")
                 .arg(&filename)
                 .status()
-                .map_err(|e| grim_rs::Error::Io(e))?;
+                .map_err(grim_rs::Error::Io)?;
             if !status.success() {
                 eprintln!("Case failed: {} {}x{}", kind, width, height);
             } else {
@@ -323,7 +323,7 @@ fn spawn_cases() -> grim_rs::Result<()> {
                 .arg("--out")
                 .arg(&filename)
                 .status()
-                .map_err(|e| grim_rs::Error::Io(e))?;
+                .map_err(grim_rs::Error::Io)?;
             if !status.success() {
                 eprintln!("Case failed: jpeg {}x{}", width, height);
             } else {

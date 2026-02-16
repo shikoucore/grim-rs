@@ -693,25 +693,16 @@ impl Grim {
         encoder.set_color(png::ColorType::Rgba);
         encoder.set_filter(png::FilterType::NoFilter);
 
-        let mut writer = encoder.write_header().map_err(|e| {
-            Error::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("PNG encoding error: {}", e),
-            ))
-        })?;
+        let mut writer = encoder
+            .write_header()
+            .map_err(|e| Error::Io(std::io::Error::other(format!("PNG encoding error: {}", e))))?;
 
-        writer.write_image_data(data).map_err(|e| {
-            Error::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("PNG encoding error: {}", e),
-            ))
-        })?;
-        writer.finish().map_err(|e| {
-            Error::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("PNG encoding error: {}", e),
-            ))
-        })?;
+        writer
+            .write_image_data(data)
+            .map_err(|e| Error::Io(std::io::Error::other(format!("PNG encoding error: {}", e))))?;
+        writer
+            .finish()
+            .map_err(|e| Error::Io(std::io::Error::other(format!("PNG encoding error: {}", e))))?;
 
         Ok(())
     }
@@ -860,12 +851,7 @@ impl Grim {
                 height as u16,
                 jpeg_encoder::ColorType::Rgb,
             )
-            .map_err(|e| {
-                Error::Io(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("JPEG encoding error: {}", e),
-                ))
-            })?;
+            .map_err(|e| Error::Io(std::io::Error::other(format!("JPEG encoding error: {}", e))))?;
 
         Ok(())
     }
@@ -1045,12 +1031,7 @@ impl Grim {
                 height as u16,
                 jpeg_encoder::ColorType::Rgb,
             )
-            .map_err(|e| {
-                Error::Io(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("JPEG encoding error: {}", e),
-                ))
-            })?;
+            .map_err(|e| Error::Io(std::io::Error::other(format!("JPEG encoding error: {}", e))))?;
 
         Ok(jpeg_data)
     }
@@ -1210,23 +1191,14 @@ impl Grim {
             encoder.set_filter(png::FilterType::NoFilter);
 
             let mut writer = encoder.write_header().map_err(|e| {
-                Error::Io(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("PNG encoding error: {}", e),
-                ))
+                Error::Io(std::io::Error::other(format!("PNG encoding error: {}", e)))
             })?;
 
             writer.write_image_data(data).map_err(|e| {
-                Error::Io(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("PNG encoding error: {}", e),
-                ))
+                Error::Io(std::io::Error::other(format!("PNG encoding error: {}", e)))
             })?;
             writer.finish().map_err(|e| {
-                Error::Io(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("PNG encoding error: {}", e),
-                ))
+                Error::Io(std::io::Error::other(format!("PNG encoding error: {}", e)))
             })?;
         }
 

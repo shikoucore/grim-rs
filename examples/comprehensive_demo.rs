@@ -60,7 +60,7 @@ fn main() -> Result<()> {
     );
 
     let filename = generate_demo_filename("png");
-    grim.save_png(&result.data(), result.width(), result.height(), &filename)?;
+    grim.save_png(result.data(), result.width(), result.height(), &filename)?;
     println!("Saved: {}\n", filename);
 
     // Capture at 50% scale
@@ -73,7 +73,7 @@ fn main() -> Result<()> {
 
     let filename = generate_demo_filename("png");
     grim.save_png(
-        &result_scaled.data(),
+        result_scaled.data(),
         result_scaled.width(),
         result_scaled.height(),
         &filename,
@@ -90,7 +90,7 @@ fn main() -> Result<()> {
 
     let filename = generate_demo_filename("png");
     grim.save_png(
-        &result_scaled_25.data(),
+        result_scaled_25.data(),
         result_scaled_25.width(),
         result_scaled_25.height(),
         &filename,
@@ -109,7 +109,7 @@ fn main() -> Result<()> {
 
     let filename = generate_demo_filename("png");
     grim.save_png(
-        &output_result.data(),
+        output_result.data(),
         output_result.width(),
         output_result.height(),
         &filename,
@@ -125,7 +125,7 @@ fn main() -> Result<()> {
 
     let filename = generate_demo_filename("png");
     grim.save_png(
-        &output_scaled.data(),
+        output_scaled.data(),
         output_scaled.width(),
         output_scaled.height(),
         &filename,
@@ -145,7 +145,7 @@ fn main() -> Result<()> {
 
     let filename = generate_demo_filename("png");
     grim.save_png(
-        &region_result.data(),
+        region_result.data(),
         region_result.width(),
         region_result.height(),
         &filename,
@@ -161,7 +161,7 @@ fn main() -> Result<()> {
 
     let filename = generate_demo_filename("png");
     grim.save_png(
-        &region_scaled.data(),
+        region_scaled.data(),
         region_scaled.width(),
         region_scaled.height(),
         &filename,
@@ -181,12 +181,7 @@ fn main() -> Result<()> {
 
         for (_output_name, capture) in multi_result.outputs().iter() {
             let filename = generate_demo_filename("png");
-            grim.save_png(
-                &capture.data(),
-                capture.width(),
-                capture.height(),
-                &filename,
-            )?;
+            grim.save_png(capture.data(), capture.width(), capture.height(), &filename)?;
             println!(
                 "Saved: {} ({}x{})",
                 filename,
@@ -206,7 +201,7 @@ fn main() -> Result<()> {
     // PNG with default compression
     let filename_png = generate_demo_filename("png");
     grim.save_png(
-        &format_result.data(),
+        format_result.data(),
         format_result.width(),
         format_result.height(),
         &filename_png,
@@ -216,7 +211,7 @@ fn main() -> Result<()> {
     // PNG with high compression (compression level 0-9)
     let filename_png_compressed = generate_demo_filename("png");
     grim.save_png_with_compression(
-        &format_result.data(),
+        format_result.data(),
         format_result.width(),
         format_result.height(),
         &filename_png_compressed,
@@ -227,7 +222,7 @@ fn main() -> Result<()> {
     // PPM format (uncompressed)
     let filename_ppm = generate_demo_filename("ppm");
     grim.save_ppm(
-        &format_result.data(),
+        format_result.data(),
         format_result.width(),
         format_result.height(),
         &filename_ppm,
@@ -239,7 +234,7 @@ fn main() -> Result<()> {
     {
         let filename_jpeg = generate_demo_filename("jpg");
         grim.save_jpeg(
-            &format_result.data(),
+            format_result.data(),
             format_result.width(),
             format_result.height(),
             &filename_jpeg,
@@ -248,7 +243,7 @@ fn main() -> Result<()> {
 
         let filename_jpeg_hq = generate_demo_filename("jpg");
         grim.save_jpeg_with_quality(
-            &format_result.data(),
+            format_result.data(),
             format_result.width(),
             format_result.height(),
             &filename_jpeg_hq,
@@ -267,7 +262,7 @@ fn main() -> Result<()> {
 
     // Convert to PNG bytes
     let png_bytes = grim.to_png(
-        &small_result.data(),
+        small_result.data(),
         small_result.width(),
         small_result.height(),
     )?;
@@ -275,7 +270,7 @@ fn main() -> Result<()> {
 
     // Convert to PPM bytes
     let ppm_bytes = grim.to_ppm(
-        &small_result.data(),
+        small_result.data(),
         small_result.width(),
         small_result.height(),
     )?;
@@ -285,14 +280,14 @@ fn main() -> Result<()> {
     {
         // Convert to JPEG bytes
         let jpeg_bytes = grim.to_jpeg(
-            &small_result.data(),
+            small_result.data(),
             small_result.width(),
             small_result.height(),
         )?;
         println!("JPEG bytes: {} bytes", jpeg_bytes.len());
 
         let jpeg_hq_bytes = grim.to_jpeg_with_quality(
-            &small_result.data(),
+            small_result.data(),
             small_result.width(),
             small_result.height(),
             90,
@@ -323,7 +318,7 @@ fn main() -> Result<()> {
 
         let filename = generate_demo_filename("png");
         grim.save_png(
-            &span_result.data(),
+            span_result.data(),
             span_result.width(),
             span_result.height(),
             &filename,
@@ -340,13 +335,13 @@ fn main() -> Result<()> {
     let filename_ppm = generate_demo_filename("ppm");
 
     grim.save_png(
-        &test_result.data(),
+        test_result.data(),
         test_result.width(),
         test_result.height(),
         &filename_png,
     )?;
     grim.save_ppm(
-        &test_result.data(),
+        test_result.data(),
         test_result.width(),
         test_result.height(),
         &filename_ppm,
@@ -367,7 +362,7 @@ fn main() -> Result<()> {
     {
         let filename_jpg = generate_demo_filename("jpg");
         grim.save_jpeg(
-            &test_result.data(),
+            test_result.data(),
             test_result.width(),
             test_result.height(),
             &filename_jpg,

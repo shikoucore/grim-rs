@@ -848,10 +848,7 @@ impl WaylandCapture {
         }
 
         let scale_int = scale as u32;
-        if scale > 1.0
-            && (scale - (scale_int as f64)).abs() < 0.01
-            && scale_int >= 2
-            && scale_int <= 4
+        if scale > 1.0 && (scale - (scale_int as f64)).abs() < 0.01 && (2..=4).contains(&scale_int)
         {
             return self.scale_image_integer_fast(capture_result, scale_int);
         }
