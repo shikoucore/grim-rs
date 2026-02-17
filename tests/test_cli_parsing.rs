@@ -74,7 +74,10 @@ fn cli_fails_for_invalid_quality_range() {
 fn cli_fails_for_invalid_compression_level_range() {
     let output = run_cli(&["-l", "10"]);
     assert!(!output.status.success());
-    assert_stderr_contains(&output, "Error: PNG compression level must be between 0 and 9");
+    assert_stderr_contains(
+        &output,
+        "Error: PNG compression level must be between 0 and 9",
+    );
 }
 
 #[test]
