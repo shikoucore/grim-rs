@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="300" viewBox="0 0 1500 300" role="img" aria-labelledby="title desc">
+  <title id="title">Image Processing Pipeline</title>
+  <desc id="desc">Wayland Screencopy to Buffer to Output Transform to Y-invert to Scaling to Format Conversion to Save.</desc>
+  <defs>
+    <style>
+      .box { fill: #f8fafc; stroke: #334155; stroke-width: 2; rx: 10; }
+      .b1 { fill: #ffedd5; }
+      .b2 { fill: #e0f2fe; }
+      .b3 { fill: #ede9fe; }
+      .b4 { fill: #fee2e2; }
+      .b5 { fill: #dcfce7; }
+      .b6 { fill: #fef9c3; }
+      .b7 { fill: #dbeafe; }
+      .txt { fill: #0f172a; font: 17px "Fira Sans", "Segoe UI", sans-serif; }
+      .sub { fill: #334155; font: 14px "Fira Sans", "Segoe UI", sans-serif; }
+      .arrow { stroke: #334155; stroke-width: 2.2; fill: none; marker-end: url(#m); }
+      .note { stroke: #64748b; stroke-width: 1.5; fill: none; marker-end: url(#m2); }
+    </style>
+    <marker id="m" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <marker id="m2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,4 L0,8 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Main chain -->
+  <rect class="box b1" x="30" y="70" width="180" height="58"/>
+  <text class="txt" x="120" y="105" text-anchor="middle">Wayland Screencopy</text>
+
+  <rect class="box b2" x="240" y="70" width="120" height="58"/>
+  <text class="txt" x="300" y="105" text-anchor="middle">Buffer</text>
+
+  <rect class="box b3" x="390" y="70" width="170" height="58"/>
+  <text class="txt" x="475" y="105" text-anchor="middle">Output Transform</text>
+
+  <rect class="box b4" x="590" y="70" width="110" height="58"/>
+  <text class="txt" x="645" y="105" text-anchor="middle">Y-invert</text>
+
+  <rect class="box b5" x="730" y="70" width="120" height="58"/>
+  <text class="txt" x="790" y="105" text-anchor="middle">Scaling</text>
+
+  <rect class="box b6" x="880" y="70" width="170" height="58"/>
+  <text class="txt" x="965" y="105" text-anchor="middle">Format Conversion</text>
+
+  <rect class="box b7" x="1080" y="70" width="110" height="58"/>
+  <text class="txt" x="1135" y="105" text-anchor="middle">Save</text>
+
+  <line class="arrow" x1="210" y1="99" x2="240" y2="99"/>
+  <line class="arrow" x1="360" y1="99" x2="390" y2="99"/>
+  <line class="arrow" x1="560" y1="99" x2="590" y2="99"/>
+  <line class="arrow" x1="700" y1="99" x2="730" y2="99"/>
+  <line class="arrow" x1="850" y1="99" x2="880" y2="99"/>
+  <line class="arrow" x1="1050" y1="99" x2="1080" y2="99"/>
+
+  <!-- Notes -->
+  <text class="sub" x="475" y="222" text-anchor="middle">(rotation / flip)</text>
+  <text class="sub" x="645" y="222" text-anchor="middle">(vertical)</text>
+  <text class="sub" x="790" y="222" text-anchor="middle">(Nearest / Triangle / CatmullRom / Lanczos3)</text>
+
+  <line class="note" x1="475" y1="128" x2="475" y2="195"/>
+  <line class="note" x1="645" y1="128" x2="645" y2="195"/>
+  <line class="note" x1="790" y1="128" x2="790" y2="195"/>
+</svg>

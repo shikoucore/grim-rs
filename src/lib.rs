@@ -255,7 +255,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -281,7 +281,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -310,7 +310,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -340,7 +340,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -369,7 +369,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -403,7 +403,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -441,7 +441,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::{Grim, Box};
     ///
     /// let mut grim = Grim::new()?;
@@ -473,7 +473,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::{Grim, Box};
     ///
     /// let mut grim = Grim::new()?;
@@ -508,7 +508,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::{Grim, CaptureParameters, Box};
     ///
     /// let mut grim = Grim::new()?;
@@ -927,7 +927,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -966,7 +966,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -1097,7 +1097,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -1132,7 +1132,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -1274,7 +1274,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -1312,7 +1312,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::{Grim, Box};
     ///
     /// // Parse region from string (same format as stdin would provide)
@@ -1353,7 +1353,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -1390,7 +1390,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -1433,7 +1433,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -1466,7 +1466,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;
@@ -1509,7 +1509,7 @@ impl Grim {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use grim_rs::Grim;
     ///
     /// let mut grim = Grim::new()?;

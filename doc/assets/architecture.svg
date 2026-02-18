@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" role="img" aria-labelledby="title desc">
+  <title id="title">grim-rs architecture</title>
+  <desc id="desc">High-level architecture: Application/CLI to grim-rs, split into capture and encode backends.</desc>
+  <defs>
+    <style>
+      .box { fill: #f8fafc; stroke: #334155; stroke-width: 2; rx: 10; }
+      .box-blue { fill: #dbeafe; }
+      .box-green { fill: #dcfce7; }
+      .box-orange { fill: #ffedd5; }
+      .txt { fill: #0f172a; font: 20px "Fira Sans", "Segoe UI", sans-serif; }
+      .sub { fill: #334155; font: 16px "Fira Sans", "Segoe UI", sans-serif; }
+      .arrow { stroke: #334155; stroke-width: 2.5; fill: none; marker-end: url(#m); }
+    </style>
+    <marker id="m" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <!-- Top flow -->
+  <rect class="box box-blue" x="430" y="28" width="240" height="64"/>
+  <text class="txt" x="550" y="67" text-anchor="middle">Application / CLI</text>
+
+  <line class="arrow" x1="550" y1="92" x2="550" y2="140"/>
+
+  <rect class="box box-blue" x="430" y="140" width="240" height="68"/>
+  <text class="txt" x="550" y="182" text-anchor="middle">grim-rs</text>
+
+  <!-- Split arrows -->
+  <line class="arrow" x1="550" y1="208" x2="305" y2="262"/>
+  <line class="arrow" x1="550" y1="208" x2="795" y2="262"/>
+
+  <!-- Capture branch -->
+  <rect class="box box-orange" x="120" y="262" width="370" height="84"/>
+  <text class="txt" x="305" y="300" text-anchor="middle">Capture backend</text>
+  <text class="sub" x="305" y="326" text-anchor="middle">(wayland_capture/*)</text>
+
+  <line class="arrow" x1="305" y1="346" x2="305" y2="405"/>
+
+  <rect class="box box-orange" x="85" y="405" width="440" height="88"/>
+  <text class="txt" x="305" y="443" text-anchor="middle">wayland-client +</text>
+  <text class="txt" x="305" y="468" text-anchor="middle">wayland-protocols(-wlr)</text>
+
+  <line class="arrow" x1="305" y1="493" x2="305" y2="556"/>
+
+  <rect class="box box-orange" x="175" y="556" width="260" height="52"/>
+  <text class="txt" x="305" y="589" text-anchor="middle">Wayland compositor</text>
+
+  <!-- Encode branch -->
+  <rect class="box box-green" x="610" y="262" width="370" height="84"/>
+  <text class="txt" x="795" y="300" text-anchor="middle">Encode backend</text>
+  <text class="sub" x="795" y="326" text-anchor="middle">(png/jpeg/ppm)</text>
+
+  <line class="arrow" x1="795" y1="346" x2="795" y2="436"/>
+
+  <rect class="box box-green" x="640" y="436" width="310" height="68"/>
+  <text class="txt" x="795" y="478" text-anchor="middle">bytes / file / stdout</text>
+</svg>

@@ -17,16 +17,24 @@ Purpose: collect **performance** (Criterion) and **memory** (DHAT, heaptrack, Ma
 ```
 
 Behavior:
+
 - Prompts to delete old outputs (use `--clean` or `--no-clean`).
 - Runs Criterion, DHAT, heaptrack, Massif in the order below.
 
-**Fair comparison (reproducible speed + memory summary):**
+**Fair comparison (reproducible speed + summary):**
 
 ```bash
 ./scripts/run_fair_compare.sh --runs=3
 ```
 
+Note:
+
+- `run_fair_compare.sh` runs Criterion benches and generates compare tables.
+- Memory sections are populated from existing `target/dhat`, `target/massif_*.txt`, `target/heaptrack_*.txt` files.
+- Run `./scripts/run_performance.sh` first if you need fresh memory values in fair-compare summaries.
+
 Outputs (summary only):
+
 - `target/fair_compare/summary_encode.md`
 - `target/fair_compare/summary_capture.md`
 - `target/fair_compare/summary_encode_compare.md`
