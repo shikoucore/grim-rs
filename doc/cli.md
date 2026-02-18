@@ -16,12 +16,10 @@ By default, output is saved to:
 -g <geometry>   Set region to capture (format: "x,y widthxheight")
 -t png|ppm|jpeg Set output filetype (default: png)
 -q <quality>    JPEG quality (0-100, default: 80)
--l <level>      PNG compression level (parser rejects values > 9; default: 6)
+-l <level>      PNG compression level (0-9, default: 6)
 -o <output>     Output name to capture (e.g. "DP-1", "HDMI-A-1")
 -c              Include cursor in screenshot
 ```
-
-Note: `-l` currently validates only the upper bound (`> 9` is rejected).
 
 ## Examples
 

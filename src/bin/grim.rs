@@ -93,7 +93,7 @@ fn main() -> grim_rs::Result<()> {
                         "Invalid compression level",
                     ))
                 })?;
-                if level > 9 {
+                if !(0..=9).contains(&level) {
                     eprintln!("Error: PNG compression level must be between 0 and 9");
                     std::process::exit(1);
                 }

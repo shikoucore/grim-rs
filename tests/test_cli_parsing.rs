@@ -81,6 +81,16 @@ fn cli_fails_for_invalid_compression_level_range() {
 }
 
 #[test]
+fn cli_fails_for_negative_compression_level() {
+    let output = run_cli(&["-l", "-1"]);
+    assert!(!output.status.success());
+    assert_stderr_contains(
+        &output,
+        "Error: PNG compression level must be between 0 and 9",
+    );
+}
+
+#[test]
 fn cli_fails_for_non_numeric_scale() {
     let output = run_cli(&["-s", "abc"]);
     assert!(!output.status.success());
