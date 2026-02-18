@@ -129,6 +129,7 @@ fn main() -> grim_rs::Result<()> {
     };
 
     let mut grim = Grim::new()?;
+    let effective_scale = resolve_effective_scale(&mut grim, opts.scale)?;
 
     let result = if let Some(ref output_name) = opts.output_name {
         if opts.with_cursor {
@@ -140,8 +141,7 @@ fn main() -> grim_rs::Result<()> {
             if let Some(scale) = opts.scale {
                 params = params.scale(scale);
             }
-            let multi_result =
-                grim.capture_outputs_with_scale(vec![params], opts.scale.unwrap_or(1.0))?;
+            let multi_result = grim.capture_outputs_with_scale(vec![params], effective_scale)?;
             let mut outputs = multi_result.into_outputs();
             if let Some(capture_result) = outputs.remove(output_name.as_str()) {
                 capture_result
@@ -149,12 +149,12 @@ fn main() -> grim_rs::Result<()> {
                 return Err(grim_rs::Error::OutputNotFound(output_name.clone()));
             }
         } else {
-            grim.capture_output_with_scale(output_name, opts.scale.unwrap_or(1.0))?
+            grim.capture_output_with_scale(output_name, effective_scale)?
         }
     } else if let Some(ref geometry) = opts.geometry {
-        grim.capture_region_with_scale(*geometry, opts.scale.unwrap_or(1.0))?
+        grim.capture_region_with_scale(*geometry, effective_scale)?
     } else {
-        grim.capture_all_with_scale(opts.scale.unwrap_or(1.0))?
+        grim.capture_all_with_scale(effective_scale)?
     };
 
     save_or_write_result(&grim, &result, &output_file, &opts)?;
@@ -337,7 +337,7 @@ fn print_help() {
          \n\
          Options:\n\
          -h              Show help message and quit.\n\
-         -s <factor>     Set the output image's scale factor.\n\
+         -s <factor>     Set the output image's scale factor (default: greatest output scale).\n\
          -g <geometry>   Set the region to capture.\n\
          -t png|ppm|jpeg Set the output filetype.\n\
          -q <quality>    Set the JPEG filetype compression rate (0-100).\n\
@@ -348,6 +348,25 @@ fn print_help() {
          If output-file is '-', output to standard output.\n\
          If no output-file is specified, use a default timestamped filename."
     );
+}
+
+fn resolve_effective_scale(grim: &mut Grim, requested_scale: Option<f64>) -> grim_rs::Result<f64> {
+    if let Some(scale) = requested_scale {
+        return Ok(scale);
+    }
+
+    let outputs = grim.get_outputs()?;
+    Ok(default_scale_from_output_scales(
+        outputs.iter().map(|output| output.scale()),
+    ))
+}
+
+fn default_scale_from_output_scales<I>(scales: I) -> f64
+where
+    I: IntoIterator<Item = i32>,
+{
+    let max_scale = scales.into_iter().filter(|&scale| scale > 0).max().unwrap_or(1);
+    f64::from(max_scale)
 }
 
 fn generate_default_filename(filetype: FileType) -> grim_rs::Result<String> {
@@ -441,4 +460,20 @@ fn get_output_dir() -> PathBuf {
     }
 
     PathBuf::from(".")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::default_scale_from_output_scales;
+
+    #[test]
+    fn default_scale_uses_max_positive_scale() {
+        assert_eq!(default_scale_from_output_scales([1, 2, 1]), 2.0);
+    }
+
+    #[test]
+    fn default_scale_falls_back_to_one() {
+        assert_eq!(default_scale_from_output_scales([]), 1.0);
+        assert_eq!(default_scale_from_output_scales([0, -1]), 1.0);
+    }
 }

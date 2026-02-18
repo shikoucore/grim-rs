@@ -12,7 +12,7 @@ By default, output is saved to:
 
 ```bash
 -h              Show help message and quit
--s <factor>     Set the output image scale factor (e.g. 0.5 for 50%)
+-s <factor>     Set the output image scale factor (default: greatest output scale)
 -g <geometry>   Set region to capture (format: "x,y widthxheight")
 -t png|ppm|jpeg Set output filetype (default: png)
 -q <quality>    JPEG quality (0-100, default: 80)
