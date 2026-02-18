@@ -365,7 +365,11 @@ fn default_scale_from_output_scales<I>(scales: I) -> f64
 where
     I: IntoIterator<Item = i32>,
 {
-    let max_scale = scales.into_iter().filter(|&scale| scale > 0).max().unwrap_or(1);
+    let max_scale = scales
+        .into_iter()
+        .filter(|&scale| scale > 0)
+        .max()
+        .unwrap_or(1);
     f64::from(max_scale)
 }
 
