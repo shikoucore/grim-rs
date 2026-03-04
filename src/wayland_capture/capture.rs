@@ -192,22 +192,7 @@ impl WaylandCapture {
         }
 
         let mut buffer_data = mmap.to_vec();
-        match format {
-            ShmFormat::Xrgb8888 => {
-                for chunk in buffer_data.chunks_exact_mut(4) {
-                    let b = chunk[0];
-                    let g = chunk[1];
-                    let r = chunk[2];
-                    chunk[0] = r;
-                    chunk[1] = g;
-                    chunk[2] = b;
-                    chunk[3] = 255;
-                }
-            }
-            ShmFormat::Argb8888 => {}
-            _ => {}
-        }
-
+        convert_shm_to_rgba(&mut buffer_data, format);
         let output_id = output.id().protocol_id();
         let mut final_data = buffer_data;
         let mut final_width = width;
@@ -641,27 +626,12 @@ impl WaylandCapture {
                 let state = lock_frame_state(frame_state)?;
                 (state.width, state.height)
             };
-            let mut buffer_data = mmap.to_vec();
-            if let Some(format) = {
+            let format = {
                 let state = lock_frame_state(frame_state)?;
-                state.format
-            } {
-                match format {
-                    ShmFormat::Xrgb8888 => {
-                        for chunk in buffer_data.chunks_exact_mut(4) {
-                            let b = chunk[0];
-                            let g = chunk[1];
-                            let r = chunk[2];
-                            chunk[0] = r;
-                            chunk[1] = g;
-                            chunk[2] = b;
-                            chunk[3] = 255;
-                        }
-                    }
-                    ShmFormat::Argb8888 => {}
-                    _ => {}
-                }
-            }
+                state.format.unwrap_or(ShmFormat::Xrgb8888)
+            };
+            let mut buffer_data = mmap.to_vec();
+            convert_shm_to_rgba(&mut buffer_data, format);
             results.insert(
                 output_name,
                 CaptureResult {
