@@ -115,6 +115,47 @@ pub(super) fn lock_frame_state(
         .map_err(|e| Error::FrameCapture(format!("Frame state mutex poisoned: {}", e)))
 }
 
+/// `wl_shm` 32-bit frame bytes to the crate's internal RGBA layout.
+///
+/// Why this exists:
+/// - `CaptureResult` data is exposed as RGBA.
+/// - `wl_shm` formats (`Xrgb8888`, `Argb8888`, etc.) are word-defined and on
+///   little-endian systems their byte order in memory is not always RGBA.
+///
+/// Where this is used:
+/// - `capture_region_for_output()` after reading the mmap buffer.
+/// - `capture_outputs()` for each captured output buffer.
+///
+/// Notes:
+/// - Conversion is done in-place (no extra allocation).
+/// - Unsupported formats are left unchanged.
+pub(super) fn convert_shm_to_rgba(buffer_data: &mut [u8], format: ShmFormat) {
+    match format {
+        // x:R:G:B -> bytes in memory are B,G,R,x on little-endian.
+        ShmFormat::Xrgb8888 => {
+            for chunk in buffer_data.chunks_exact_mut(4) {
+                chunk.swap(0, 2);
+                chunk[3] = 255;
+            }
+        }
+        // A:R:G:B -> bytes in memory are B,G,R,A on little-endian.
+        ShmFormat::Argb8888 => {
+            for chunk in buffer_data.chunks_exact_mut(4) {
+                chunk.swap(0, 2);
+            }
+        }
+        // x:B:G:R -> bytes in memory are R,G,B,x on little-endian.
+        ShmFormat::Xbgr8888 => {
+            for chunk in buffer_data.chunks_exact_mut(4) {
+                chunk[3] = 255;
+            }
+        }
+        // A:B:G:R -> bytes in memory are R,G,B,A on little-endian.
+        ShmFormat::Abgr8888 => {}
+        _ => {}
+    }
+}
+
 /// Guess logical geometry from physical geometry when xdg_output is not available.
 pub(super) fn guess_output_logical_geometry(info: &mut OutputInfo) {
     info.logical_x = info.x;

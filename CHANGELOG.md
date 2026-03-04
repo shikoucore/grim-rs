@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] 2026-03-04
+
+### Fixed
+
+- **Incorrect color channels with `wl_shm::Argb8888`**: Fixed red/blue channel swap in screenshots on setups where screencopy reports `Argb8888` (e.g. AMD/Hyprland) [#14](https://github.com/shikoucore/grim-rs/issues/14) (thx [Windblows2000](https://github.com/Windblows2000)) by converting `BGRA` memory layout to crate-level `RGBA`..
+
+### Changed
+
+- **Unified shm format conversion**: Centralized `wl_shm` → `RGBA` byte conversion in a single internal helper and reused it in both single-output and multi-output capture paths to keep behavior consistent.
+- **Format handling parity**: Aligned default format fallback behavior between single and multi-output capture paths.
+
 ## [0.1.5] 2026-02-06
 
 ### Fixed

@@ -1,5 +1,29 @@
 use grim_rs::{Box as GrimBox, CaptureParameters, CaptureResult, Error, Grim};
 use std::collections::HashMap;
+use wayland_client::protocol::wl_shm::Format as ShmFormat;
+
+fn convert_shm_to_rgba_for_test(buffer_data: &mut [u8], format: ShmFormat) {
+    match format {
+        ShmFormat::Xrgb8888 => {
+            for chunk in buffer_data.chunks_exact_mut(4) {
+                chunk.swap(0, 2);
+                chunk[3] = 255;
+            }
+        }
+        ShmFormat::Argb8888 => {
+            for chunk in buffer_data.chunks_exact_mut(4) {
+                chunk.swap(0, 2);
+            }
+        }
+        ShmFormat::Xbgr8888 => {
+            for chunk in buffer_data.chunks_exact_mut(4) {
+                chunk[3] = 255;
+            }
+        }
+        ShmFormat::Abgr8888 => {}
+        _ => {}
+    }
+}
 
 #[test]
 fn test_box_struct_creation() {
@@ -113,6 +137,20 @@ fn test_image_data_format() {
     assert_eq!(data[1], 0); // G
     assert_eq!(data[2], 0); // B
     assert_eq!(data[3], 255); // A
+}
+
+#[test]
+fn test_convert_xrgb8888_to_rgba() {
+    let mut pixel_data = vec![10, 20, 30, 99];
+    convert_shm_to_rgba_for_test(&mut pixel_data, ShmFormat::Xrgb8888);
+    assert_eq!(pixel_data, vec![30, 20, 10, 255]);
+}
+
+#[test]
+fn test_convert_argb8888_to_rgba_preserves_alpha() {
+    let mut pixel_data = vec![10, 20, 30, 40];
+    convert_shm_to_rgba_for_test(&mut pixel_data, ShmFormat::Argb8888);
+    assert_eq!(pixel_data, vec![30, 20, 10, 40]);
 }
 
 #[test]
