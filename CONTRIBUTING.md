@@ -93,7 +93,7 @@ Before opening a PR:
 - Keep PRs focused and small when possible.
 - Be explicit about tradeoffs and alternatives.
 - If in doubt, open an Issue and ask before implementing.
-- If you are stuck, you can email me at hopperplayer0@gmail.com with your question, and I will reply when possible.
+- If you are stuck, you can email me at vremyavnikuda@protonmail.com with your question, and I will reply when possible.
 
 ## Thanks
 
