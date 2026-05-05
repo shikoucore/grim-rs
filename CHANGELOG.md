@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] 2026-05-05
+
+### Fixed
+
+- **Rotated output capture on vertical monitors**: Fixed incorrect screencopy region handling by keeping full-output and region requests in output-local logical coordinates. Fixes [#16](https://github.com/shikoucore/grim-rs/issues/16).
+- **Cursor capture orientation on rotated outputs**: Applied output transform and `Y-invert` consistently in the multi-output cursor path so rotated captures are returned with the correct orientation.
+
+### Changed
+
+- **Multi-output capture flow**: Refreshed output state before multi-output capture and aligned full-output requests with logical output dimensions.
+- **CI checks**: Tightened the all-features pipeline and made strict clippy warnings blocking for the main workflow.
+
 ## [0.1.6] 2026-03-04
 
 ### Fixed
