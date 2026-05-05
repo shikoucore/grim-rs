@@ -4,8 +4,16 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
+    name: Checks
     runs-on: ubuntu-latest
 
     steps:
@@ -21,14 +29,17 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Format check
-        run: cargo fmt -- --check
+        run: cargo fmt --all -- --check
 
       - name: Clippy
-        run: cargo clippy --all-targets
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Tests (headless-safe)
+      - name: Build all targets
+        run: cargo check --all-targets --all-features
+
+      - name: Headless-safe tests and example builds
         run: |
-          cargo test --lib --bins --tests --examples -- \
+          cargo test --all-features --lib --bins --tests --examples -- \
             --skip test_mock_capture \
             --skip test_scale_functionality \
             --skip test_ppm_format \
@@ -36,24 +47,4 @@ jobs:
             --skip test_to_jpeg
 
       - name: Build benches
-        run: cargo bench --no-run
-
-  strict-clippy:
-    name: Strict Clippy (non-blocking)
-    runs-on: ubuntu-latest
-    continue-on-error: true
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-
-      - name: Cache cargo artifacts
-        uses: Swatinem/rust-cache@v2
-
-      - name: Clippy (deny warnings)
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo bench --no-run --all-features
