@@ -349,10 +349,10 @@ impl Dispatch<ZxdgOutputV1, ()> for WaylandCapture {
                         info.logical_scale_known = true;
                         update_logical_scale(info);
                     }
-                    Event::Name { name } => {
-                        if info.name.starts_with("output-") || info.name.is_empty() {
-                            info.name = name.clone();
-                        }
+                    Event::Name { name }
+                        if info.name.starts_with("output-") || info.name.is_empty() =>
+                    {
+                        info.name = name.clone();
                     }
                     Event::Description { description } => {
                         info.description = Some(description);
