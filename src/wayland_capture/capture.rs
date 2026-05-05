@@ -272,32 +272,14 @@ impl WaylandCapture {
                 } else {
                     info.scale as f64
                 };
-
-                // Convert logical coords to physical pixels. For fractional scale, we need to
-                // be careful with rounding so we don't miss edge pixels.
-                let local_x = (intersection.x() - info.logical_x) as f64;
-                let local_y = (intersection.y() - info.logical_y) as f64;
-                let local_w = intersection.width() as f64;
-                let local_h = intersection.height() as f64;
-
-                let x0 = (local_x * scale).floor() as i32;
-                let y0 = (local_y * scale).floor() as i32;
-                let x1 = ((local_x + local_w) * scale).ceil() as i32;
-                let y1 = ((local_y + local_h) * scale).ceil() as i32;
-
-                // Clamp to output boundaries in physical pixels.
-                let x0 = x0.clamp(0, info.width);
-                let y0 = y0.clamp(0, info.height);
-                let x1 = x1.clamp(0, info.width);
-                let y1 = y1.clamp(0, info.height);
-
-                if x1 <= x0 || y1 <= y0 {
-                    continue;
-                }
-
-                let physical_local_region = Box::new(x0, y0, x1 - x0, y1 - y0);
+                let local_region = Box::new(
+                    intersection.x() - info.logical_x,
+                    intersection.y() - info.logical_y,
+                    intersection.width(),
+                    intersection.height(),
+                );
                 let mut capture =
-                    self.capture_region_for_output(output, physical_local_region, overlay_cursor)?;
+                    self.capture_region_for_output(output, local_region, overlay_cursor)?;
 
                 if scale != 1.0 {
                     capture = self.scale_image_data(capture, 1.0 / scale)?;
@@ -399,7 +381,7 @@ impl WaylandCapture {
             .find(|(_, info)| info.name == output_name)
             .ok_or_else(|| Error::OutputNotFound(output_name.to_string()))?;
 
-        let local_region = Box::new(0, 0, info.width, info.height);
+        let local_region = Box::new(0, 0, info.logical_width, info.logical_height);
         self.capture_region_for_output(&output_handle, local_region, false)
     }
 
@@ -427,9 +409,7 @@ impl WaylandCapture {
         &mut self,
         parameters: Vec<CaptureParameters>,
     ) -> Result<MultiOutputCaptureResult> {
-        if self.globals.outputs.is_empty() {
-            return Err(Error::NoOutputs);
-        }
+        self.refresh_outputs()?;
 
         let screencopy_manager =
             self.globals
@@ -458,10 +438,10 @@ impl WaylandCapture {
                 .find(|o| o.id().protocol_id() == *output_id)
                 .ok_or_else(|| Error::OutputNotFound(param.output_name().to_string()))?;
             let region = if let Some(region) = param.region_ref() {
-                let output_right = output_info.x + output_info.width;
-                let output_bottom = output_info.y + output_info.height;
-                if region.x() < output_info.x
-                    || region.y() < output_info.y
+                let output_right = output_info.logical_width;
+                let output_bottom = output_info.logical_height;
+                if region.x() < 0
+                    || region.y() < 0
                     || region.x() + region.width() > output_right
                     || region.y() + region.height() > output_bottom
                 {
@@ -471,12 +451,7 @@ impl WaylandCapture {
                 }
                 *region
             } else {
-                Box::new(
-                    output_info.x,
-                    output_info.y,
-                    output_info.width,
-                    output_info.height,
-                )
+                Box::new(0, 0, output_info.logical_width, output_info.logical_height)
             };
             let frame_state = Arc::new(Mutex::new(FrameState {
                 buffer: None,
@@ -632,12 +607,50 @@ impl WaylandCapture {
             };
             let mut buffer_data = mmap.to_vec();
             convert_shm_to_rgba(&mut buffer_data, format);
+            let mut final_data = buffer_data;
+            let mut final_width = width;
+            let mut final_height = height;
+
+            if let Some(info) = self
+                .globals
+                .output_info
+                .values()
+                .find(|info| info.name == output_name)
+            {
+                if !matches!(
+                    info.transform,
+                    wayland_client::protocol::wl_output::Transform::Normal
+                ) {
+                    let (transformed_data, new_width, new_height) = apply_image_transform(
+                        &final_data,
+                        final_width,
+                        final_height,
+                        info.transform,
+                    );
+                    final_data = transformed_data;
+                    final_width = new_width;
+                    final_height = new_height;
+                }
+            }
+
+            let flags = {
+                let state = lock_frame_state(frame_state)?;
+                state.flags
+            };
+
+            if (flags & ZWLR_SCREENCOPY_FRAME_V1_FLAGS_Y_INVERT) != 0 {
+                let (inverted_data, inv_width, inv_height) =
+                    flip_vertical(&final_data, final_width, final_height);
+                final_data = inverted_data;
+                final_width = inv_width;
+                final_height = inv_height;
+            }
             results.insert(
                 output_name,
                 CaptureResult {
-                    data: buffer_data,
-                    width,
-                    height,
+                    data: final_data,
+                    width: final_width,
+                    height: final_height,
                 },
             );
         }
