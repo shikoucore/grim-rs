@@ -1399,5 +1399,4 @@ impl Grim {
         handle.flush()?;
         Ok(())
     }
-
 }
