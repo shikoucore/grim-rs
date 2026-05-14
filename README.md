@@ -16,7 +16,7 @@ Rust implementation of `grim-rs` screenshot utility for Wayland compositors.
 - Multi-output capture and compositing
 - Full output transform handling (all 8 Wayland transform modes)
 - Adaptive image scaling (Nearest / Triangle / CatmullRom / Lanczos3)
-- PNG / JPEG / PPM output
+- PNG / JPEG output
 - Cursor overlay support (compositor-dependent)
 - Y-invert handling for correct orientation
 - No external runtime screenshot tools required
@@ -95,8 +95,8 @@ At a glance:
 
 - Initialize: `Grim::new()`
 - Capture: `capture_all*`, `capture_output*`, `capture_region*`, `capture_outputs*`
-- Encode/save: `save_png*`, `save_jpeg*`, `save_ppm`, `to_png*`, `to_jpeg*`, `to_ppm`
-- Stdout/stderr helpers: `write_png_to_stdout*`, `write_jpeg_to_stdout*`, `write_ppm_to_stdout`
+- Encode/save: `save_png*`, `save_jpeg*`, `to_png*`, `to_jpeg*`
+- Stdout/stderr helpers: `write_png_to_stdout*`, `write_jpeg_to_stdout*`
 - Utility: `Grim::read_region_from_stdin()`
 
 Feature flags:

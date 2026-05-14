@@ -32,7 +32,7 @@ fn cli_help_long_prints_usage_without_wayland() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("Usage: grim [options...] [output-file]"));
-    assert!(stdout.contains("-t png|ppm|jpeg"));
+    assert!(stdout.contains("-t png|jpeg"));
 }
 
 #[test]

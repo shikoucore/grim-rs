@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] 2026-05-14
+
+### Removed
+
+- **PPM output format**: Removed `save_ppm`, `to_ppm`, and `write_ppm_to_stdout` from the public API. Removed `-t ppm` from the CLI. PPM is an uncompressed format with no practical advantage over PNG for screenshots — shrinking the API surface eliminates ~80 lines of encode/decode glue with zero user impact. Migration: [MIGRATION.md](MIGRATION.md).
+
 ## [0.1.7] 2026-05-05
 
 ### Fixed

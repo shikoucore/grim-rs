@@ -118,7 +118,6 @@ fn main() -> grim_rs::Result<()> {
     grim.save_png_with_compression(result.data(), result.width(), result.height(), "compressed.png", 9)?;
     grim.save_jpeg(result.data(), result.width(), result.height(), "screenshot.jpg")?;
     grim.save_jpeg_with_quality(result.data(), result.width(), result.height(), "quality.jpg", 95)?;
-    grim.save_ppm(result.data(), result.width(), result.height(), "screenshot.ppm")?;
 
     Ok(())
 }
@@ -143,9 +142,6 @@ fn main() -> grim_rs::Result<()> {
 
     let _jpeg_bytes = grim.to_jpeg_with_quality(result.data(), result.width(), result.height(), 85)?;
 
-    let ppm_bytes = grim.to_ppm(result.data(), result.width(), result.height())?;
-    println!("PPM size: {} bytes", ppm_bytes.len());
-
     Ok(())
 }
 ```
@@ -163,7 +159,6 @@ fn main() -> grim_rs::Result<()> {
     grim.write_png_to_stdout_with_compression(result.data(), result.width(), result.height(), 6)?;
     grim.write_jpeg_to_stdout(result.data(), result.width(), result.height())?;
     grim.write_jpeg_to_stdout_with_quality(result.data(), result.width(), result.height(), 90)?;
-    grim.write_ppm_to_stdout(result.data(), result.width(), result.height())?;
 
     Ok(())
 }

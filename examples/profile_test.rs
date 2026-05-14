@@ -54,18 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!();
     }
 
-    println!("4. PPM encoding:");
-    let start = Instant::now();
-    let ppm_data = grim.to_ppm(result.data(), result.width(), result.height())?;
-    let encode_time = start.elapsed();
-    println!(
-        "Time: {:?} -> {} bytes ({:.2} MB)\n",
-        encode_time,
-        ppm_data.len(),
-        ppm_data.len() as f64 / 1024.0 / 1024.0
-    );
-
-    println!("5. Capture with different scales:");
+    println!("4. Capture with different scales:");
     for scale in [0.5, 1.0, 2.0] {
         let start = Instant::now();
         let scaled_result = grim.capture_all_with_scale(scale)?;

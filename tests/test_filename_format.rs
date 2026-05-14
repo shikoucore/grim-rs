@@ -92,7 +92,7 @@ fn test_filename_with_different_extensions() {
     let now = Local::now();
     let timestamp = now.format("%Y%m%d_%Hh%Mm%Ss");
 
-    let extensions = vec!["png", "jpeg", "ppm"];
+    let extensions = vec!["png", "jpeg"];
     for ext in extensions {
         let filename = format!("{}_grim.{}", timestamp, ext);
         assert!(

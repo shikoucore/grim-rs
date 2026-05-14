@@ -221,16 +221,6 @@ fn main() -> Result<()> {
     )?;
     println!("Saved PNG (best compression): {}", filename_png_compressed);
 
-    // PPM format (uncompressed)
-    let filename_ppm = generate_demo_filename("format_ppm", "ppm");
-    grim.save_ppm(
-        format_result.data(),
-        format_result.width(),
-        format_result.height(),
-        &filename_ppm,
-    )?;
-    println!("Saved PPM (uncompressed): {}", filename_ppm);
-
     // JPEG format (if feature enabled)
     #[cfg(feature = "jpeg")]
     {
@@ -269,14 +259,6 @@ fn main() -> Result<()> {
         small_result.height(),
     )?;
     println!("PNG bytes: {} bytes", png_bytes.len());
-
-    // Convert to PPM bytes
-    let ppm_bytes = grim.to_ppm(
-        small_result.data(),
-        small_result.width(),
-        small_result.height(),
-    )?;
-    println!("PPM bytes: {} bytes", ppm_bytes.len());
 
     #[cfg(feature = "jpeg")]
     {
@@ -334,7 +316,6 @@ fn main() -> Result<()> {
     let test_result = grim.capture_region(test_region)?;
 
     let filename_png = generate_demo_filename("compare_png", "png");
-    let filename_ppm = generate_demo_filename("compare_ppm", "ppm");
 
     grim.save_png(
         test_result.data(),
@@ -342,15 +323,8 @@ fn main() -> Result<()> {
         test_result.height(),
         &filename_png,
     )?;
-    grim.save_ppm(
-        test_result.data(),
-        test_result.width(),
-        test_result.height(),
-        &filename_ppm,
-    )?;
 
     let png_size = std::fs::metadata(&filename_png)?.len();
-    let ppm_size = std::fs::metadata(&filename_ppm)?.len();
 
     println!(
         "Image size: {}x{}",
@@ -358,7 +332,6 @@ fn main() -> Result<()> {
         test_result.height()
     );
     println!("  PNG ({}): {} bytes", filename_png, png_size);
-    println!("  PPM ({}): {} bytes", filename_ppm, ppm_size);
 
     #[cfg(feature = "jpeg")]
     {
@@ -382,7 +355,7 @@ fn main() -> Result<()> {
     }
 
     println!(
-        "  • Multiple formats: PNG, PPM{}",
+        "  • Multiple formats: PNG{}",
         if cfg!(feature = "jpeg") { ", JPEG" } else { "" }
     );
 

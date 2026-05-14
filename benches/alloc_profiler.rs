@@ -34,11 +34,6 @@ fn run_case(kind: &str, width: u32, height: u32, out_file: &str) -> grim_rs::Res
             let out = grim.to_png_with_compression(&data, width, height, 9)?;
             drop(out);
         }
-        "ppm" => {
-            let data = generate_test_data(width, height);
-            let out = grim.to_ppm(&data, width, height)?;
-            drop(out);
-        }
         #[cfg(feature = "jpeg")]
         "jpeg" => {
             let data = generate_test_data(width, height);
@@ -82,17 +77,6 @@ fn run_case(kind: &str, width: u32, height: u32, out_file: &str) -> grim_rs::Res
                 std::process::id()
             ));
             grim.save_png_with_compression(&data, width, height, &path, 9)?;
-        }
-        "save_ppm" => {
-            let data = generate_test_data(width, height);
-            let mut path = std::env::temp_dir();
-            path.push(format!(
-                "grim-rs-save_ppm-{}x{}-{}.ppm",
-                width,
-                height,
-                std::process::id()
-            ));
-            grim.save_ppm(&data, width, height, &path)?;
         }
         #[cfg(feature = "jpeg")]
         "save_jpeg" => {
@@ -221,17 +205,6 @@ fn run_case(kind: &str, width: u32, height: u32, out_file: &str) -> grim_rs::Res
             ));
             grim.save_png(out.data(), out.width(), out.height(), &path)?;
         }
-        "capture_all_save_ppm" => {
-            let out = grim.capture_all()?;
-            let mut path = std::env::temp_dir();
-            path.push(format!(
-                "grim-rs-capture_all_save_ppm-{}x{}-{}.ppm",
-                out.width(),
-                out.height(),
-                std::process::id()
-            ));
-            grim.save_ppm(out.data(), out.width(), out.height(), &path)?;
-        }
         #[cfg(feature = "jpeg")]
         "capture_all_save_jpeg" => {
             let out = grim.capture_all()?;
@@ -268,10 +241,8 @@ fn spawn_cases() -> grim_rs::Result<()> {
     let kinds = [
         "png",
         "png_compress",
-        "ppm",
         "save_png",
         "save_png_compress",
-        "save_ppm",
         "capture_all",
         "capture_all_scale",
         "capture_region",
@@ -281,7 +252,6 @@ fn spawn_cases() -> grim_rs::Result<()> {
         "capture_outputs",
         "capture_outputs_scale",
         "capture_all_save_png",
-        "capture_all_save_ppm",
     ];
 
     for (width, height) in sizes {

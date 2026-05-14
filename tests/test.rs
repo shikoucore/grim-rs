@@ -166,26 +166,6 @@ fn test_png_compression_levels() {
 }
 
 #[test]
-fn test_ppm_format_generation() {
-    let test_data = vec![255u8; 10 * 10 * 4];
-
-    if let Ok(grim) = Grim::new() {
-        let ppm_result = grim.to_ppm(&test_data, 10, 10);
-        assert!(ppm_result.is_ok());
-
-        let ppm_data = ppm_result.unwrap();
-        let ppm_str = String::from_utf8(ppm_data[..13].to_vec()).unwrap();
-
-        // Check PPM header
-        assert!(ppm_str.starts_with("P6\n"));
-        assert!(ppm_str.contains("10 10\n"));
-        assert!(ppm_str.contains("255\n"));
-
-        assert_eq!(ppm_data.len(), 13 + 10 * 10 * 3);
-    }
-}
-
-#[test]
 fn test_capture_parameters_default_behavior() {
     let params = CaptureParameters::new("test");
 
@@ -579,17 +559,6 @@ fn test_jpeg_disabled() {
     let test_data = vec![255u8; 16];
     let jpeg_result = grim.to_jpeg(&test_data, 4, 4);
     assert!(jpeg_result.is_err());
-}
-
-#[test]
-fn test_ppm_format() {
-    let grim = Grim::new().unwrap();
-    let test_data = vec![255u8; 16];
-    let ppm_result = grim.to_ppm(&test_data, 2, 2);
-    assert!(ppm_result.is_ok());
-    let ppm_data = ppm_result.unwrap();
-    assert!(ppm_data.starts_with(b"P6\n2 2\n255\n"));
-    assert!(ppm_data.len() >= 12);
 }
 
 #[test]

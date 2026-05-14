@@ -14,7 +14,7 @@ By default, output is saved to:
 -h              Show help message and quit
 -s <factor>     Set the output image scale factor (default: greatest output scale)
 -g <geometry>   Set region to capture (format: "x,y widthxheight")
--t png|ppm|jpeg Set output filetype (default: png)
+-t png|jpeg    Set output filetype (default: png)
 -q <quality>    JPEG quality (0-100, default: 80)
 -l <level>      PNG compression level (0-9, default: 6)
 -o <output>     Output name to capture (e.g. "DP-1", "HDMI-A-1")
@@ -50,9 +50,6 @@ cargo run --bin grim-rs -- -t jpeg -q 90 screenshot.jpg
 
 # PNG with max compression
 cargo run --bin grim-rs -- -l 9 compressed.png
-
-# PPM output
-cargo run --bin grim-rs -- -t ppm screenshot.ppm
 
 # Combined options
 cargo run --bin grim-rs -- -g "0,0 1920x1080" -s 0.8 -c scaled_region.png

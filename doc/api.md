@@ -30,7 +30,6 @@ For full rustdoc details, see [docs.rs/grim-rs](https://docs.rs/grim-rs).
 - `save_png_with_compression(&data, width, height, path, compression: u8)` - Save as PNG with custom compression
 - `save_jpeg(&data, width, height, path)` - Save as JPEG with default quality (80) [requires `jpeg` feature]
 - `save_jpeg_with_quality(&data, width, height, path, quality: u8)` - Save as JPEG with custom quality (0-100) [requires `jpeg` feature]
-- `save_ppm(&data, width, height, path)` - Save as PPM (uncompressed)
 
 ### Converting to Bytes
 
@@ -38,7 +37,6 @@ For full rustdoc details, see [docs.rs/grim-rs](https://docs.rs/grim-rs).
 - `to_png_with_compression(&data, width, height, compression: u8)` - Convert to PNG bytes with custom compression
 - `to_jpeg(&data, width, height)` - Convert to JPEG bytes with default quality [requires `jpeg` feature]
 - `to_jpeg_with_quality(&data, width, height, quality: u8)` - Convert to JPEG bytes with custom quality [requires `jpeg` feature]
-- `to_ppm(&data, width, height)` - Convert to PPM bytes
 
 ### Writing to Stdout
 
@@ -46,7 +44,6 @@ For full rustdoc details, see [docs.rs/grim-rs](https://docs.rs/grim-rs).
 - `write_png_to_stdout_with_compression(&data, width, height, compression: u8)` - Write PNG to stdout with custom compression
 - `write_jpeg_to_stdout(&data, width, height)` - Write JPEG to stdout with default quality [requires `jpeg` feature]
 - `write_jpeg_to_stdout_with_quality(&data, width, height, quality: u8)` - Write JPEG to stdout with custom quality [requires `jpeg` feature]
-- `write_ppm_to_stdout(&data, width, height)` - Write PPM to stdout
 
 ### Stdin Input
 

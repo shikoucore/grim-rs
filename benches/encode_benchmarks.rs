@@ -274,58 +274,6 @@ fn benchmark_jpeg_save_quality_levels(c: &mut Criterion) {
     group.finish();
 }
 
-fn benchmark_ppm_encoding(c: &mut Criterion) {
-    let mut group = c.benchmark_group("ppm_encoding");
-
-    let sizes = [
-        ("640x480", 640, 480),
-        ("1920x1080", 1920, 1080),
-        ("3840x2160", 3840, 2160),
-    ];
-
-    for (name, width, height) in sizes.iter() {
-        let data = generate_test_data(*width, *height);
-        let bytes = data.len() as u64;
-
-        group.throughput(Throughput::Bytes(bytes));
-        group.bench_with_input(BenchmarkId::from_parameter(name), &data, |b, data| {
-            let grim = Grim::new().expect("Failed to create Grim");
-            b.iter(|| {
-                let result = grim
-                    .to_ppm(data, *width, *height)
-                    .expect("Failed to encode PPM");
-                black_box(result);
-            });
-        });
-    }
-
-    group.finish();
-}
-
-fn benchmark_ppm_save(c: &mut Criterion) {
-    let mut group = c.benchmark_group("ppm_save");
-
-    let sizes = [
-        ("640x480", 640, 480),
-        ("1920x1080", 1920, 1080),
-        ("3840x2160", 3840, 2160),
-    ];
-
-    for (name, width, height) in sizes.iter() {
-        let data = generate_test_data(*width, *height);
-        let path = temp_path("save_ppm", "ppm", *width, *height);
-        group.bench_with_input(BenchmarkId::from_parameter(name), &data, |b, data| {
-            let grim = Grim::new().expect("Failed to create Grim");
-            b.iter(|| {
-                grim.save_ppm(data, *width, *height, &path)
-                    .expect("Failed to save PPM");
-            });
-        });
-    }
-
-    group.finish();
-}
-
 fn benchmark_png_stdout(c: &mut Criterion) {
     let mut group = c.benchmark_group("png_stdout");
 
@@ -362,25 +310,6 @@ fn benchmark_png_stdout_compression(c: &mut Criterion) {
             });
         });
     }
-
-    group.finish();
-}
-
-fn benchmark_ppm_stdout(c: &mut Criterion) {
-    let mut group = c.benchmark_group("ppm_stdout");
-
-    let width = 1920;
-    let height = 1080;
-    let data = generate_test_data(width, height);
-
-    group.bench_function("write_ppm_to_stdout", |b| {
-        let grim = Grim::new().expect("Failed to create Grim");
-        b.iter(|| {
-            let _silencer = StdoutSilencer::new().expect("Failed to silence stdout");
-            grim.write_ppm_to_stdout(&data, width, height)
-                .expect("Failed to write PPM");
-        });
-    });
 
     group.finish();
 }
@@ -442,11 +371,8 @@ criterion_group!(
     benchmark_jpeg_quality_levels,
     benchmark_jpeg_save,
     benchmark_jpeg_save_quality_levels,
-    benchmark_ppm_encoding,
-    benchmark_ppm_save,
     benchmark_png_stdout,
     benchmark_png_stdout_compression,
-    benchmark_ppm_stdout,
     benchmark_jpeg_stdout,
     benchmark_jpeg_stdout_quality
 );
@@ -458,11 +384,8 @@ criterion_group!(
     benchmark_png_compression_levels,
     benchmark_png_save,
     benchmark_png_save_compression_levels,
-    benchmark_ppm_encoding,
-    benchmark_ppm_save,
     benchmark_png_stdout,
-    benchmark_png_stdout_compression,
-    benchmark_ppm_stdout
+    benchmark_png_stdout_compression
 );
 
 criterion_main!(benches);

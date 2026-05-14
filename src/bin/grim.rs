@@ -51,9 +51,6 @@ fn main() -> grim_rs::Result<()> {
                     "png" => {
                         opts.filetype = FileType::Png;
                     }
-                    "ppm" => {
-                        opts.filetype = FileType::Ppm;
-                    }
                     "jpeg" => {
                         opts.filetype = FileType::Jpeg;
                     }
@@ -190,7 +187,6 @@ impl Default for Options {
 #[derive(Debug, Clone, Copy)]
 enum FileType {
     Png,
-    Ppm,
     Jpeg,
 }
 
@@ -214,7 +210,6 @@ fn write_to_stdout(
 ) -> grim_rs::Result<()> {
     match opts.filetype {
         FileType::Png => write_png_to_stdout(grim, result, opts.png_level),
-        FileType::Ppm => grim.write_ppm_to_stdout(result.data(), result.width(), result.height()),
         FileType::Jpeg => write_jpeg_to_stdout(grim, result, opts.jpeg_quality),
     }
 }
@@ -228,7 +223,6 @@ fn save_to_file(
     let path = Path::new(output_file);
     match opts.filetype {
         FileType::Png => save_png_to_file(grim, result, path, opts.png_level),
-        FileType::Ppm => grim.save_ppm(result.data(), result.width(), result.height(), path),
         FileType::Jpeg => save_jpeg_to_file(grim, result, path, opts.jpeg_quality),
     }
 }
@@ -339,7 +333,7 @@ fn print_help() {
          -h              Show help message and quit.\n\
          -s <factor>     Set the output image's scale factor (default: greatest output scale).\n\
          -g <geometry>   Set the region to capture.\n\
-         -t png|ppm|jpeg Set the output filetype.\n\
+         -t png|jpeg    Set the output filetype.\n\
          -q <quality>    Set the JPEG filetype compression rate (0-100).\n\
          -l <level>      Set the PNG filetype compression level (0-9).\n\
          -o <output>     Set the output name to capture.\n\
@@ -382,7 +376,6 @@ fn generate_default_filename(filetype: FileType) -> grim_rs::Result<String> {
 
     let ext = match filetype {
         FileType::Png => "png",
-        FileType::Ppm => "ppm",
         FileType::Jpeg => "jpeg",
     };
 

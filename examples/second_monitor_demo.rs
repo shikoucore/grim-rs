@@ -178,11 +178,6 @@ fn main() -> Result<()> {
         println!("Saved: {}", filename);
     }
 
-    println!("- PPM (uncompressed)...");
-    let filename = generate_filename("format", "ppm");
-    grim.save_ppm(result.data(), result.width(), result.height(), &filename)?;
-    println!("Saved: {}\n", filename);
-
     println!("Capturing scaled regions...");
 
     println!("- Center region at 0.75x scale...");
@@ -236,9 +231,6 @@ fn main() -> Result<()> {
         let jpeg_bytes = grim.to_jpeg(result.data(), result.width(), result.height())?;
         println!("JPEG bytes: {} bytes", jpeg_bytes.len());
     }
-
-    let ppm_bytes = grim.to_ppm(result.data(), result.width(), result.height())?;
-    println!("PPM bytes: {} bytes\n", ppm_bytes.len());
 
     println!("Creating grid of small captures (4x4)...");
     let grid_size = 4;

@@ -1,3 +1,52 @@
+# Migration Guide: 0.1.7 → 0.1.8
+
+This guide helps you upgrade from grim-rs version 0.1.7 to 0.1.8.
+
+Version 0.1.8 **removes PPM output format support**.
+
+---
+
+## Removed: PPM Format
+
+The following methods have been removed from the public API:
+
+- `Grim::save_ppm` — use `save_png` instead
+- `Grim::to_ppm` — use `to_png` instead
+- `Grim::write_ppm_to_stdout` — use `write_png_to_stdout` instead
+
+The CLI no longer accepts `-t ppm`. Use `-t png` (default) or `-t jpeg`.
+
+### Migration
+
+**Before (0.1.7):**
+```rust
+grim.save_ppm(result.data(), result.width(), result.height(), "screenshot.ppm")?;
+let ppm_bytes = grim.to_ppm(result.data(), result.width(), result.height())?;
+grim.write_ppm_to_stdout(result.data(), result.width(), result.height())?;
+```
+
+**After (0.1.8):**
+```rust
+grim.save_png(result.data(), result.width(), result.height(), "screenshot.png")?;
+let png_bytes = grim.to_png(result.data(), result.width(), result.height())?;
+grim.write_png_to_stdout(result.data(), result.width(), result.height())?;
+```
+
+### CLI Migration
+
+**Before (0.1.7):**
+```bash
+grim-rs -t ppm screenshot.ppm
+```
+
+**After (0.1.8):**
+```bash
+grim-rs screenshot.png            # PNG is the default
+grim-rs -t jpeg screenshot.jpg    # or JPEG if you need lossy
+```
+
+---
+
 # Migration Guide: 0.1.2 → 0.1.3
 
 This guide helps you upgrade from grim-rs version 0.1.2 to 0.1.3.
@@ -190,7 +239,6 @@ for chunk in result.data().chunks_exact(4) {
 
 // Save multiple formats from same capture
 grim.save_png(result.data(), result.width(), result.height(), "capture.png")?;
-grim.save_ppm(result.data(), result.width(), result.height(), "capture.ppm")?;
 ```
 
 **Taking ownership when needed:**
