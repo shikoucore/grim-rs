@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9]
+
+### Fixed
+
+- **dmabuf frame delivery for `zwlr_screencopy`**: Completed the `LinuxDmabuf` event handler so frames delivered via dmabuf (instead of `wl_shm`) are correctly processed. Captures no longer time out on compositors that prefer dmabuf — the handler populates frame dimensions and format, and the existing shm-buffer path performs the cross-device copy transparently. When a compositor sends both `Buffer` and `LinuxDmabuf` events, the `Buffer` format takes precedence to avoid mismatches.
+
 ## [0.1.8] 2026-05-14
 
 ### Removed
