@@ -52,6 +52,7 @@ pub(super) struct FrameState {
     format: Option<ShmFormat>,
     ready: bool,
     flags: u32,
+    linux_dmabuf_received: bool,
 }
 
 /// Compute a safe buffer size in bytes for image-like data.
@@ -113,6 +114,25 @@ pub(super) fn lock_frame_state(
     frame_state
         .lock()
         .map_err(|e| Error::FrameCapture(format!("Frame state mutex poisoned: {}", e)))
+}
+
+/// Map a DRM fourcc format code to the equivalent `wl_shm` Format.
+///
+/// The `zwlr_screencopy` protocol delivers dmabuf frames with DRM fourcc
+/// codes.  For the 32-bit RGB layouts the fourcc values are identical to
+/// the `wl_shm` format enum values, so the rest of the pipeline
+/// (`convert_shm_to_rgba`) can process them unchanged.
+///
+/// Unknown fourcc codes return `None` — callers should fall back to a
+/// reasonable default.
+pub(super) fn drm_fourcc_to_shm_format(fourcc: u32) -> Option<ShmFormat> {
+    match fourcc {
+        0x34325241 => Some(ShmFormat::Argb8888), // DRM_FORMAT_ARGB8888
+        0x34325258 => Some(ShmFormat::Xrgb8888), // DRM_FORMAT_XRGB8888
+        0x34324241 => Some(ShmFormat::Abgr8888), // DRM_FORMAT_ABGR8888
+        0x34324258 => Some(ShmFormat::Xbgr8888), // DRM_FORMAT_XBGR8888
+        _ => None,
+    }
 }
 
 /// `wl_shm` 32-bit frame bytes to the crate's internal RGBA layout.

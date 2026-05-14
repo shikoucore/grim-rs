@@ -294,14 +294,35 @@ impl Dispatch<ZwlrScreencopyFrameV1, Arc<Mutex<FrameState>>> for WaylandCapture 
                 width,
                 height,
             } => {
-                // TODO:Обработка LinuxDmabuf - альтернативный способ передачи данных
-                // Пока не поддерживаем, но логируем для отладки
-                log::debug!(
-                    "Received LinuxDmabuf: format={}, width={}, height={}",
-                    format,
-                    width,
-                    height
-                );
+                let mut state = match lock_frame_state(frame_state) {
+                    Ok(state) => state,
+                    Err(err) => {
+                        log::error!(
+                            "Dropping screencopy LinuxDmabuf event due to mutex error: {}",
+                            err
+                        );
+                        return;
+                    }
+                };
+                // Only take dimensions / format from dmabuf if the Buffer event
+                // hasn't already populated them (some compositors send both).
+                if state.width == 0 {
+                    state.width = width;
+                }
+                if state.height == 0 {
+                    state.height = height;
+                }
+                if state.format.is_none() {
+                    state.format = super::drm_fourcc_to_shm_format(format);
+                    if state.format.is_none() {
+                        log::warn!(
+                            "Unknown dmabuf DRM fourcc 0x{:08x}, falling back to Xrgb8888",
+                            format
+                        );
+                        state.format = Some(ShmFormat::Xrgb8888);
+                    }
+                }
+                state.linux_dmabuf_received = true;
             }
             Event::BufferDone => {
                 log::debug!("Buffer copy completed");

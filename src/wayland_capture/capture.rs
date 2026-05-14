@@ -84,6 +84,7 @@ impl WaylandCapture {
             format: None,
             ready: false,
             flags: 0,
+            linux_dmabuf_received: false,
         }));
         let frame = screencopy_manager.capture_output_region(
             if overlay_cursor { 1 } else { 0 },
@@ -100,8 +101,11 @@ impl WaylandCapture {
         loop {
             {
                 let state = lock_frame_state(&frame_state)?;
-                if state.buffer.is_some() || state.ready {
-                    if state.ready && state.buffer.is_none() {
+                if state.buffer.is_some() || state.ready || state.linux_dmabuf_received {
+                    if state.ready
+                        && state.buffer.is_none()
+                        && !state.linux_dmabuf_received
+                    {
                         return Err(Error::FrameCapture(
                             "Frame is ready but buffer was not received".to_string(),
                         ));
@@ -118,6 +122,16 @@ impl WaylandCapture {
                 Error::FrameCapture(format!("Failed to dispatch frame events: {}", e))
             })?;
             attempts += 1;
+        }
+
+        // If we received linux_dmabuf but no Buffer event, populate buffer from dmabuf info.
+        {
+            let mut state = lock_frame_state(&frame_state)?;
+            if state.buffer.is_none() && state.linux_dmabuf_received {
+                let stride = state.width * 4;
+                let size = checked_buffer_size(state.width, state.height, 4, Some(stride))?;
+                state.buffer = Some(vec![0u8; size]);
+            }
         }
 
         let shm = self
@@ -460,6 +474,7 @@ impl WaylandCapture {
                 format: None,
                 ready: false,
                 flags: 0,
+                linux_dmabuf_received: false,
             }));
             let frame = screencopy_manager.capture_output_region(
                 if param.overlay_cursor_enabled() { 1 } else { 0 },
@@ -484,7 +499,7 @@ impl WaylandCapture {
                     state
                         .lock()
                         .ok()
-                        .is_some_and(|s| s.buffer.is_some() || s.ready)
+                        .is_some_and(|s| s.buffer.is_some() || s.ready || s.linux_dmabuf_received)
                 })
                 .count();
             if completed_frames >= total_frames {
@@ -501,9 +516,16 @@ impl WaylandCapture {
             ));
         }
         for frame_state in frame_states.values() {
-            let state = lock_frame_state(frame_state)?;
+            let mut state = lock_frame_state(frame_state)?;
             if state.buffer.is_none() {
-                return Err(Error::CaptureFailed);
+                if state.linux_dmabuf_received {
+                    let stride = state.width * 4;
+                    let size =
+                        checked_buffer_size(state.width, state.height, 4, Some(stride))?;
+                    state.buffer = Some(vec![0u8; size]);
+                } else {
+                    return Err(Error::CaptureFailed);
+                }
             }
         }
         let mut buffers: HashMap<String, (tempfile::NamedTempFile, memmap2::MmapMut)> =
