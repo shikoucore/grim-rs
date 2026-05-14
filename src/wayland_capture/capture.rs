@@ -102,10 +102,7 @@ impl WaylandCapture {
             {
                 let state = lock_frame_state(&frame_state)?;
                 if state.buffer.is_some() || state.ready || state.linux_dmabuf_received {
-                    if state.ready
-                        && state.buffer.is_none()
-                        && !state.linux_dmabuf_received
-                    {
+                    if state.ready && state.buffer.is_none() && !state.linux_dmabuf_received {
                         return Err(Error::FrameCapture(
                             "Frame is ready but buffer was not received".to_string(),
                         ));
@@ -520,8 +517,7 @@ impl WaylandCapture {
             if state.buffer.is_none() {
                 if state.linux_dmabuf_received {
                     let stride = state.width * 4;
-                    let size =
-                        checked_buffer_size(state.width, state.height, 4, Some(stride))?;
+                    let size = checked_buffer_size(state.width, state.height, 4, Some(stride))?;
                     state.buffer = Some(vec![0u8; size]);
                 } else {
                     return Err(Error::CaptureFailed);
