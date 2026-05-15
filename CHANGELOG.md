@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9]
+
+### Added
+
+- **`ext-image-copy-capture-v1` backend**: New capture protocol supported alongside the existing `wlr-screencopy`. Auto-detection prefers `ext-image-copy-capture-v1` when available (Sway ≥ 2025, Hyprland, COSMIC), falling back to `wlr-screencopy`. New constructors: `Grim::new_ext()` and `Grim::new_wlr()` to force a specific backend. `Grim::new()` continues to work with auto-detection. Public `Backend` enum exposed: `Auto`, `ExtImageCopyCapture`, `WlrScreencopy`. See [library examples — Backend selection](doc/library_examples.md#backend-selection) for usage.
+- **`pixel_format` module**: Public pixel format conversion utilities with `PixelFormat` enum (`Argb8888`, `Xrgb8888`, `Abgr8888`, `Xbgr8888`), `fourcc_to_format()` for DRM fourcc mapping, and `convert_to_rgba()` for in-place byte swizzle. Fully tested (9 tests). No Wayland dependency — usable for any RGBA pixel processing.
+
+### Changed
+
+- **`Box` renamed to `Region`**: The geometry struct `Box` has been renamed to `Region` to eliminate the name collision with `std::boxed::Box`. This is a breaking change — all imports must change from `use grim_rs::Box` (or `use grim_rs::geometry::Box`) to `use grim_rs::Region`. The migration is a simple find-and-replace: `Box::new(` → `Region::new(`, `: Box` → `: Region`. See [MIGRATION.md](MIGRATION.md) for full details.
+
+### Fixed
+
+- **dmabuf frame delivery for `zwlr_screencopy`**: Completed the `LinuxDmabuf` event handler so frames delivered via dmabuf (instead of `wl_shm`) are correctly processed. Captures no longer time out on compositors that prefer dmabuf — the handler populates frame dimensions and format, and the existing shm-buffer path performs the cross-device copy transparently. When a compositor sends both `Buffer` and `LinuxDmabuf` events, the `Buffer` format takes precedence to avoid mismatches.
+
 ## [0.1.8] 2026-05-14
 
 ### Removed

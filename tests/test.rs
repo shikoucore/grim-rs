@@ -1,33 +1,10 @@
-use grim_rs::{Box as GrimBox, CaptureParameters, CaptureResult, Error, Grim};
+use grim_rs::pixel_format::{self, PixelFormat};
+use grim_rs::{Backend, CaptureParameters, CaptureResult, Error, Grim, Region};
 use std::collections::HashMap;
-use wayland_client::protocol::wl_shm::Format as ShmFormat;
-
-fn convert_shm_to_rgba_for_test(buffer_data: &mut [u8], format: ShmFormat) {
-    match format {
-        ShmFormat::Xrgb8888 => {
-            for chunk in buffer_data.chunks_exact_mut(4) {
-                chunk.swap(0, 2);
-                chunk[3] = 255;
-            }
-        }
-        ShmFormat::Argb8888 => {
-            for chunk in buffer_data.chunks_exact_mut(4) {
-                chunk.swap(0, 2);
-            }
-        }
-        ShmFormat::Xbgr8888 => {
-            for chunk in buffer_data.chunks_exact_mut(4) {
-                chunk[3] = 255;
-            }
-        }
-        ShmFormat::Abgr8888 => {}
-        _ => {}
-    }
-}
 
 #[test]
 fn test_box_struct_creation() {
-    let box1 = GrimBox::new(10, 20, 100, 200);
+    let box1 = Region::new(10, 20, 100, 200);
     assert_eq!(box1.x(), 10);
     assert_eq!(box1.y(), 20);
     assert_eq!(box1.width(), 100);
@@ -36,33 +13,28 @@ fn test_box_struct_creation() {
 
 #[test]
 fn test_box_is_empty() {
-    let box1 = GrimBox::new(0, 0, 0, 0);
+    let box1 = Region::new(0, 0, 0, 0);
     assert!(box1.is_empty());
-
-    let box2 = GrimBox::new(0, 0, -10, 10);
+    let box2 = Region::new(0, 0, -10, 10);
     assert!(box2.is_empty());
-
-    let box3 = GrimBox::new(0, 0, 10, -5);
+    let box3 = Region::new(0, 0, 10, -5);
     assert!(box3.is_empty());
-
-    let box4 = GrimBox::new(0, 0, 10, 10);
+    let box4 = Region::new(0, 0, 10, 10);
     assert!(!box4.is_empty());
 }
 
 #[test]
 fn test_box_intersection() {
-    let box1 = GrimBox::new(0, 0, 100, 100);
-    let box2 = GrimBox::new(50, 50, 100, 100);
-
+    let box1 = Region::new(0, 0, 100, 100);
+    let box2 = Region::new(50, 50, 100, 100);
     assert!(box1.intersects(&box2));
     let intersection = box1.intersection(&box2).unwrap();
     assert_eq!(intersection.x(), 50);
     assert_eq!(intersection.y(), 50);
     assert_eq!(intersection.width(), 50);
     assert_eq!(intersection.height(), 50);
-
-    let box3 = GrimBox::new(0, 0, 10, 10);
-    let box4 = GrimBox::new(100, 100, 10, 10);
+    let box3 = Region::new(0, 0, 10, 10);
+    let box4 = Region::new(100, 100, 10, 10);
     assert!(!box3.intersects(&box4));
     assert!(box3.intersection(&box4).is_none());
 }
@@ -70,7 +42,7 @@ fn test_box_intersection() {
 #[test]
 fn test_box_string_parsing() {
     let box_str = "10,20 300x400";
-    let parsed: GrimBox = box_str.parse().unwrap();
+    let parsed: Region = box_str.parse().unwrap();
     assert_eq!(parsed.x(), 10);
     assert_eq!(parsed.y(), 20);
     assert_eq!(parsed.width(), 300);
@@ -82,7 +54,6 @@ fn test_box_string_parsing() {
 fn test_capture_result_struct() {
     let data = vec![255u8; 400];
     let result = CaptureResult::new(data, 10, 10);
-
     assert_eq!(result.width(), 10);
     assert_eq!(result.height(), 10);
     assert_eq!(result.data().len(), 400); // 10x10x4
@@ -91,12 +62,11 @@ fn test_capture_result_struct() {
 #[test]
 fn test_capture_parameters_struct() {
     let params = CaptureParameters::new("eDP-1")
-        .region(GrimBox::new(0, 0, 800, 600))
+        .region(Region::new(0, 0, 800, 600))
         .overlay_cursor(true)
         .scale(1.5);
-
     assert_eq!(params.output_name(), "eDP-1");
-    assert_eq!(params.region_ref(), Some(&GrimBox::new(0, 0, 800, 600)));
+    assert_eq!(params.region_ref(), Some(&Region::new(0, 0, 800, 600)));
     assert!(params.overlay_cursor_enabled());
     assert_eq!(params.scale_factor(), Some(1.5));
 }
@@ -105,17 +75,15 @@ fn test_capture_parameters_struct() {
 fn test_error_messages() {
     let error = grim_rs::Error::InvalidGeometry("test".to_string());
     assert!(error.to_string().contains("Invalid geometry format"));
-
     let error = grim_rs::Error::NoOutputs;
     assert_eq!(error.to_string(), "No outputs available");
-
     let error = grim_rs::Error::OutputNotFound("test".to_string());
     assert!(error.to_string().contains("Output not found"));
 }
 
 #[test]
 fn test_crate_export_structs() {
-    let _box = GrimBox::new(0, 0, 100, 100);
+    let _box = Region::new(0, 0, 100, 100);
     let _params = CaptureParameters::new("test");
     let _result = CaptureResult::new(vec![], 0, 0);
 }
@@ -130,9 +98,7 @@ fn test_image_data_format() {
         0, 0, 255, 255, // Blue pixel
         255, 255, 255, 255, // White pixel
     ];
-
     assert_eq!(data.len(), (width * height * 4) as usize);
-
     assert_eq!(data[0], 255); // R
     assert_eq!(data[1], 0); // G
     assert_eq!(data[2], 0); // B
@@ -142,21 +108,20 @@ fn test_image_data_format() {
 #[test]
 fn test_convert_xrgb8888_to_rgba() {
     let mut pixel_data = vec![10, 20, 30, 99];
-    convert_shm_to_rgba_for_test(&mut pixel_data, ShmFormat::Xrgb8888);
+    pixel_format::convert_to_rgba(&mut pixel_data, PixelFormat::Xrgb8888);
     assert_eq!(pixel_data, vec![30, 20, 10, 255]);
 }
 
 #[test]
 fn test_convert_argb8888_to_rgba_preserves_alpha() {
     let mut pixel_data = vec![10, 20, 30, 40];
-    convert_shm_to_rgba_for_test(&mut pixel_data, ShmFormat::Argb8888);
+    pixel_format::convert_to_rgba(&mut pixel_data, PixelFormat::Argb8888);
     assert_eq!(pixel_data, vec![30, 20, 10, 40]);
 }
 
 #[test]
 fn test_png_compression_levels() {
     let test_data = vec![255u8; 100 * 100 * 4]; // 100x100 image
-
     if let Ok(grim) = Grim::new() {
         let _ = grim.to_png(&test_data, 100, 100);
         let _ = grim.to_png_with_compression(&test_data, 100, 100, 0);
@@ -168,7 +133,6 @@ fn test_png_compression_levels() {
 #[test]
 fn test_capture_parameters_default_behavior() {
     let params = CaptureParameters::new("test");
-
     assert_eq!(params.output_name(), "test");
     assert!(params.region_ref().is_none());
     assert!(!params.overlay_cursor_enabled());
@@ -179,11 +143,9 @@ fn test_capture_parameters_default_behavior() {
 #[test]
 fn test_jpeg_functionality_available() {
     let test_data = vec![255u8; 10 * 10 * 4];
-
     if let Ok(grim) = Grim::new() {
         let jpeg_result = grim.to_jpeg(&test_data, 10, 10);
         assert!(jpeg_result.is_ok());
-
         let jpeg_result_with_quality = grim.to_jpeg_with_quality(&test_data, 10, 10, 85);
         assert!(jpeg_result_with_quality.is_ok());
     }
@@ -193,7 +155,6 @@ fn test_jpeg_functionality_available() {
 #[test]
 fn test_jpeg_functionality_unavailable() {
     let test_data = vec![255u8; 10 * 10 * 4];
-
     match Grim::new() {
         Ok(grim) => {
             let jpeg_result = grim.to_jpeg(&test_data, 10, 10);
@@ -214,13 +175,10 @@ fn test_multi_output_capture_result() {
         "output2".to_string(),
         CaptureResult::new(vec![128u8; 200 * 150 * 4], 200, 150),
     );
-
     let multi_result = grim_rs::MultiOutputCaptureResult::new(outputs_map);
-
     assert_eq!(multi_result.outputs().len(), 2);
     assert!(multi_result.outputs().contains_key("output1"));
     assert!(multi_result.outputs().contains_key("output2"));
-
     let output1_result = multi_result.get("output1").unwrap();
     assert_eq!(output1_result.width(), 100);
     assert_eq!(output1_result.height(), 100);
@@ -230,11 +188,9 @@ fn test_multi_output_capture_result() {
 #[test]
 fn test_scale_functionality_validation() {
     let scales = [0.5, 1.0, 1.5, 2.0, 0.25];
-
     for scale in scales.iter() {
         let new_width = (800.0 * scale) as u32;
         let new_height = (600.0 * scale) as u32;
-
         assert!(new_width > 0);
         assert!(new_height > 0);
     }
@@ -242,29 +198,25 @@ fn test_scale_functionality_validation() {
 
 #[test]
 fn test_geometry_bounds_checking() {
-    let invalid_box = GrimBox::new(0, 0, -10, 100);
+    let invalid_box = Region::new(0, 0, -10, 100);
     assert!(invalid_box.is_empty());
-
-    let invalid_box2 = GrimBox::new(0, 0, 100, -10);
+    let invalid_box2 = Region::new(0, 0, 100, -10);
     assert!(invalid_box2.is_empty());
-
-    let valid_box = GrimBox::new(10, 10, 100, 100);
+    let valid_box = Region::new(10, 10, 100, 100);
     assert!(!valid_box.is_empty());
 }
 
 #[test]
 fn test_region_intersection_with_outputs() {
-    let output_box = GrimBox::new(0, 0, 1920, 1080);
-    let capture_region = GrimBox::new(100, 100, 500, 500);
-
+    let output_box = Region::new(0, 0, 1920, 1080);
+    let capture_region = Region::new(100, 100, 500, 500);
     assert!(output_box.intersects(&capture_region));
     let intersection = output_box.intersection(&capture_region).unwrap();
     assert_eq!(intersection.x(), 100);
     assert_eq!(intersection.y(), 100);
     assert_eq!(intersection.width(), 500);
     assert_eq!(intersection.height(), 500);
-
-    let region_outside = GrimBox::new(2000, 2000, 100, 100);
+    let region_outside = Region::new(2000, 2000, 100, 100);
     assert!(!output_box.intersects(&region_outside));
     assert!(output_box.intersection(&region_outside).is_none());
 }
@@ -274,7 +226,6 @@ mod transform_tests {
     fn test_transform_normal() {
         let width = 1920;
         let height = 1080;
-
         assert_eq!(width, 1920);
         assert_eq!(height, 1080);
     }
@@ -284,10 +235,8 @@ mod transform_tests {
     fn test_transform_90_degree_rotation() {
         let original_width = 1920;
         let original_height = 1080;
-
         let expected_width = 1080;
         let expected_height = 1920;
-
         assert_ne!(original_width, expected_width);
         assert_ne!(original_height, expected_height);
         assert_eq!(original_width, expected_height);
@@ -299,7 +248,6 @@ mod transform_tests {
     fn test_transform_180_degree_rotation() {
         let width = 1920;
         let height = 1080;
-
         assert_eq!(width, 1920);
         assert_eq!(height, 1080);
     }
@@ -309,10 +257,8 @@ mod transform_tests {
     fn test_transform_270_degree_rotation() {
         let original_width = 1920;
         let original_height = 1080;
-
         let expected_width = 1080;
         let expected_height = 1920;
-
         assert_eq!(original_width, expected_height);
         assert_eq!(original_height, expected_width);
     }
@@ -322,7 +268,6 @@ mod transform_tests {
     fn test_transform_flipped() {
         let width = 1920;
         let height = 1080;
-
         assert_eq!(width, 1920);
         assert_eq!(height, 1080);
     }
@@ -332,10 +277,8 @@ mod transform_tests {
     fn test_transform_flipped_90() {
         let original_width = 1920;
         let original_height = 1080;
-
         let expected_width = 1080;
         let expected_height = 1920;
-
         assert_eq!(original_width, expected_height);
         assert_eq!(original_height, expected_width);
     }
@@ -348,7 +291,6 @@ mod transform_tests {
             height: i32,
             rotated: bool,
         }
-
         let outputs = [
             TestOutput {
                 width: 1920,
@@ -361,15 +303,12 @@ mod transform_tests {
                 rotated: true,
             },
         ];
-
         assert_eq!(outputs[0].width, 1920);
         assert_eq!(outputs[0].height, 1080);
         assert!(!outputs[0].rotated);
-
         assert_eq!(outputs[1].width, 1080);
         assert_eq!(outputs[1].height, 1920);
         assert!(outputs[1].rotated);
-
         assert_eq!(outputs[0].width, outputs[1].height);
         assert_eq!(outputs[0].height, outputs[1].width);
     }
@@ -380,16 +319,12 @@ mod transform_tests {
         let physical_width = 3840;
         let physical_height = 2160;
         let scale = 2;
-
         let logical_width = physical_width / scale;
         let logical_height = physical_height / scale;
-
         assert_eq!(logical_width, 1920);
         assert_eq!(logical_height, 1080);
-
         let logical_width_rotated = logical_height;
         let logical_height_rotated = logical_width;
-
         assert_eq!(logical_width_rotated, 1080);
         assert_eq!(logical_height_rotated, 1920);
     }
@@ -399,10 +334,8 @@ mod transform_tests {
     fn test_transform_integration_dimensions() {
         let original_width = 1920;
         let original_height = 1080;
-
         let rotated_width = 1080;
         let rotated_height = 1920;
-
         assert_eq!(original_width, rotated_height);
         assert_eq!(original_height, rotated_width);
     }
@@ -416,7 +349,6 @@ mod transform_tests {
             0, 0, 255, 255, // Blue
             255, 255, 255, 255, // White
         ];
-
         assert_eq!(test_data.len(), 2 * 2 * 4);
     }
 
@@ -425,10 +357,8 @@ mod transform_tests {
     fn test_flipped_transforms_dimensions() {
         let width = 1920;
         let height = 1080;
-
         assert_eq!(width, 1920);
         assert_eq!(height, 1080);
-
         assert_eq!(width, 1920);
         assert_eq!(height, 1080);
     }
@@ -437,11 +367,9 @@ mod transform_tests {
     #[test]
     fn test_rotation_angles() {
         use std::f64::consts::{FRAC_PI_2, PI};
-
         let angle_90 = FRAC_PI_2; // π/2
         let angle_180 = PI; // π
         let angle_270 = 3.0 * FRAC_PI_2; // 3π/2
-
         assert!(angle_90 > 0.0 && angle_90 < PI);
         assert_eq!(angle_180, PI);
         assert!(angle_270 > PI && angle_270 < 2.0 * PI);
@@ -462,13 +390,10 @@ mod y_invert_tests {
     #[test]
     fn test_y_invert_flag_detection() {
         const Y_INVERT: u32 = 1;
-
         let flags_with_invert = 1u32;
         assert_ne!(flags_with_invert & Y_INVERT, 0);
-
         let flags_without_invert = 0u32;
         assert_eq!(flags_without_invert & Y_INVERT, 0);
-
         let flags_mixed = 3u32;
         assert_ne!(flags_mixed & Y_INVERT, 0);
     }
@@ -478,7 +403,6 @@ mod y_invert_tests {
     fn test_y_invert_preserves_dimensions() {
         let width = 1920;
         let height = 1080;
-
         assert_eq!(width, 1920);
         assert_eq!(height, 1080);
     }
@@ -488,18 +412,14 @@ mod y_invert_tests {
     fn test_y_invert_with_transform() {
         let _original_width = 1920;
         let _original_height = 1080;
-
         let transformed_width = 1080;
         let transformed_height = 1920;
-
         let final_width = transformed_width;
         let final_height = transformed_height;
-
         assert_eq!(final_width, 1080);
         assert_eq!(final_height, 1920);
     }
 
-    /// Test FrameState flags field
     #[test]
     fn test_frame_state_flags_field() {
         let flags: u32 = 0;
@@ -564,7 +484,7 @@ fn test_jpeg_disabled() {
 #[test]
 fn test_read_region_from_stdin() {
     let region_str = "10,20 300x400";
-    let result: std::result::Result<GrimBox, _> = region_str.parse();
+    let result: std::result::Result<Region, _> = region_str.parse();
     assert!(result.is_ok());
     let region = result.unwrap();
     assert_eq!(region.x(), 10);
@@ -582,4 +502,85 @@ fn test_scale_functionality() {
         Err(Error::NoOutputs) => {}
         Err(e) => panic!("Unexpected error: {:?}", e),
     }
+}
+
+#[test]
+fn test_backend_enum_variants() {
+    let auto = Backend::Auto;
+    let ext = Backend::ExtImageCopyCapture;
+    let wlr = Backend::WlrScreencopy;
+    assert_ne!(auto, ext);
+    assert_ne!(ext, wlr);
+    assert_eq!(auto, Backend::Auto);
+    // Auto is the default-like variant
+    assert!(matches!(auto, Backend::Auto));
+}
+
+#[test]
+fn test_new_ext_constructor() {
+    match Grim::new_ext() {
+        Ok(_) => {}
+        Err(e) => {
+            assert!(
+                e.to_string().contains("not available"),
+                "expected UnsupportedProtocol, got: {e}"
+            );
+        }
+    }
+}
+
+#[test]
+fn test_new_wlr_constructor() {
+    match Grim::new_wlr() {
+        Ok(_) => {}
+        Err(e) => {
+            assert!(
+                e.to_string().contains("not available"),
+                "expected UnsupportedProtocol, got: {e}"
+            );
+        }
+    }
+}
+
+#[test]
+fn test_new_auto_is_equivalent_to_new() {
+    let result_auto = Grim::new();
+    match result_auto {
+        Ok(_) | Err(Error::NoOutputs) => {} // expected
+        Err(e) => panic!("Unexpected error from Grim::new(): {e}"),
+    }
+}
+
+#[test]
+fn test_new_ext_can_capture() {
+    if let Ok(mut grim) = Grim::new_ext() {
+        match grim.capture_all() {
+            Ok(result) => {
+                assert_eq!(
+                    result.data().len(),
+                    (result.width() * result.height() * 4) as usize
+                );
+            }
+            Err(Error::NoOutputs) => {} // no monitors connected
+            Err(e) => panic!("Capture failed on ext backend: {e}"),
+        }
+    }
+    // ext not available — skip
+}
+
+#[test]
+fn test_new_wlr_can_capture() {
+    if let Ok(mut grim) = Grim::new_wlr() {
+        match grim.capture_all() {
+            Ok(result) => {
+                assert_eq!(
+                    result.data().len(),
+                    (result.width() * result.height() * 4) as usize
+                );
+            }
+            Err(Error::NoOutputs) => {} // no monitors connected
+            Err(e) => panic!("Capture failed on wlr backend: {e}"),
+        }
+    }
+    // wlr not available — skip
 }

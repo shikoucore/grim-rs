@@ -3,11 +3,16 @@
 This is a practical API index for the public surface.
 For full rustdoc details, see [docs.rs/grim-rs](https://docs.rs/grim-rs).
 
+> an example of usage is shown in [library examples](/doc/library_examples.md)
+
 ## Core Methods
 
 ### Initialization
 
-- `Grim::new()` - Create new Grim instance and connect to Wayland compositor
+- `Grim::new()` - Create new Grim instance with auto-detected backend (prefers `ext-image-copy-capture-v1`, falls back to `wlr-screencopy`)
+- `Grim::new_ext()` - Force `ext-image-copy-capture-v1` backend (fails if compositor doesn't support it)
+- `Grim::new_wlr()` - Force `wlr-screencopy` backend (fails if compositor doesn't support it)
+- `Backend` enum — `Auto`, `ExtImageCopyCapture`, `WlrScreencopy`
 
 ### Getting Display Information
 
@@ -19,8 +24,8 @@ For full rustdoc details, see [docs.rs/grim-rs](https://docs.rs/grim-rs).
 - `capture_all_with_scale(scale: f64)` - Capture entire screen with scaling
 - `capture_output(output_name: &str)` - Capture specific output by name
 - `capture_output_with_scale(output_name: &str, scale: f64)` - Capture output with scaling
-- `capture_region(region: Box)` - Capture specific rectangular region
-- `capture_region_with_scale(region: Box, scale: f64)` - Capture region with scaling
+- `capture_region(region: Region)` - Capture specific rectangular region
+- `capture_region_with_scale(region: Region, scale: f64)` - Capture region with scaling
 - `capture_outputs(parameters: Vec<CaptureParameters>)` - Capture multiple outputs with different parameters
 - `capture_outputs_with_scale(parameters: Vec<CaptureParameters>, default_scale: f64)` - Capture multiple outputs with scaling
 
@@ -78,17 +83,36 @@ For full rustdoc details, see [docs.rs/grim-rs](https://docs.rs/grim-rs).
 
 - Fields are private
 - `name()` - Output name (e.g., `eDP-1`, `HDMI-A-1`)
-- `geometry()` - Output position and size (`Box`)
+- `geometry()` - Output position and size (`Region`)
 - `scale()` - Output scale factor
 - `description()` - Optional monitor description
 
-### `Box`
+### `Region`
 
 - Fields are private
-- `Box::new(x, y, width, height)` - Create region
+- `Region::new(x, y, width, height)` - Create region
 - Accessors: `x()`, `y()`, `width()`, `height()`
 - Utilities: `is_empty()`, `intersects(...)`, `intersection(...)`
 - Parse from string: `"x,y widthxheight"`
+
+### `pixel_format` Module
+
+Public pixel format conversion utilities, independent of Wayland types.
+
+- `PixelFormat` enum — `Argb8888`, `Xrgb8888`, `Abgr8888`, `Xbgr8888`
+- `fourcc_to_format(fourcc: u32) -> Option<PixelFormat>` — map DRM fourcc to PixelFormat
+- `convert_to_rgba(data: &mut [u8], format: PixelFormat)` — in-place byte swizzle to RGBA
+
+```rust
+use grim_rs::pixel_format::{self, PixelFormat};
+
+let mut pixels = get_raw_frame();
+pixel_format::convert_to_rgba(&mut pixels, PixelFormat::Argb8888);
+
+if let Some(fmt) = pixel_format::fourcc_to_format(0x34325241) {
+    pixel_format::convert_to_rgba(&mut pixels, fmt);
+}
+```
 
 ## Feature Flags
 

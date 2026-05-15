@@ -44,7 +44,12 @@ jobs:
             --skip test_scale_functionality \
             --skip test_ppm_format \
             --skip test_to_png \
-            --skip test_to_jpeg
+            --skip test_to_jpeg \
+            --skip test_new_ext_constructor \
+            --skip test_new_wlr_constructor \
+            --skip test_new_auto_is_equivalent_to_new \
+            --skip test_new_ext_can_capture \
+            --skip test_new_wlr_can_capture
 
       - name: Build benches
         run: cargo bench --no-run --all-features
