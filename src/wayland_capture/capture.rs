@@ -1,5 +1,6 @@
 use super::transform::{apply_image_transform, flip_vertical};
 use super::*;
+use wayland_protocols::ext::image_copy_capture::v1::client::ext_image_copy_capture_manager_v1::Options as ExtCopyOptions;
 
 impl WaylandCapture {
     fn refresh_outputs(&mut self) -> Result<()> {
@@ -57,6 +58,7 @@ impl WaylandCapture {
         region: Region,
         overlay_cursor: bool,
     ) -> Result<CaptureResult> {
+        // Validation is shared
         if region.width() <= 0 || region.height() <= 0 {
             return Err(Error::InvalidRegion(
                 "Capture region must have positive width and height".to_string(),
@@ -68,13 +70,32 @@ impl WaylandCapture {
             ));
         }
 
-        let screencopy_manager =
-            self.globals
-                .screencopy_manager
-                .as_ref()
-                .ok_or(Error::UnsupportedProtocol(
-                    "zwlr_screencopy_manager_v1 not available".to_string(),
-                ))?;
+        let backend = self.backend_cloned()?;
+        match backend {
+            CaptureBackend::WlrScreencopy { manager } => {
+                self.capture_region_wlr(&manager, output, region, overlay_cursor)
+            }
+            CaptureBackend::ExtImageCopyCapture {
+                source_manager,
+                copy_manager,
+            } => self.capture_region_ext(
+                &source_manager,
+                &copy_manager,
+                output,
+                region,
+                overlay_cursor,
+            ),
+        }
+    }
+
+    fn capture_region_wlr(
+        &mut self,
+        manager: &ZwlrScreencopyManagerV1,
+        output: &WlOutput,
+        region: Region,
+        overlay_cursor: bool,
+    ) -> Result<CaptureResult> {
+        let screencopy_manager = manager;
         let mut event_queue = self._connection.new_event_queue();
         let qh = event_queue.handle();
         let frame_state = Arc::new(Mutex::new(FrameState {
@@ -85,6 +106,7 @@ impl WaylandCapture {
             ready: false,
             flags: 0,
             linux_dmabuf_received: false,
+            constraints_done: false,
         }));
         let frame = screencopy_manager.capture_output_region(
             if overlay_cursor { 1 } else { 0 },
@@ -233,6 +255,185 @@ impl WaylandCapture {
             final_data = inverted_data;
             final_width = inv_width;
             final_height = inv_height;
+        }
+
+        Ok(CaptureResult {
+            data: final_data,
+            width: final_width,
+            height: final_height,
+        })
+    }
+
+    fn capture_region_ext(
+        &mut self,
+        source_manager: &ExtOutputImageCaptureSourceManagerV1,
+        copy_manager: &ExtImageCopyCaptureManagerV1,
+        output: &WlOutput,
+        region: Region,
+        overlay_cursor: bool,
+    ) -> Result<CaptureResult> {
+        let mut event_queue = self._connection.new_event_queue();
+        let qh = event_queue.handle();
+        let frame_state = Arc::new(Mutex::new(FrameState {
+            buffer: None,
+            width: 0,
+            height: 0,
+            format: None,
+            ready: false,
+            flags: 0,
+            linux_dmabuf_received: false,
+            constraints_done: false,
+        }));
+        let source = source_manager.create_source(output, &qh, ());
+        let mut options = ExtCopyOptions::empty();
+        if overlay_cursor {
+            options |= ExtCopyOptions::PaintCursors;
+        }
+        let _session = copy_manager.create_session(&source, options, &qh, frame_state.clone());
+
+        let mut attempts = 0;
+        loop {
+            {
+                let state = lock_frame_state(&frame_state)?;
+                if state.constraints_done {
+                    break;
+                }
+            }
+            if attempts >= MAX_ATTEMPTS {
+                return Err(Error::FrameCapture(
+                    "Timeout waiting for session constraints".to_string(),
+                ));
+            }
+            event_queue.blocking_dispatch(self).map_err(|e| {
+                Error::FrameCapture(format!("Failed to dispatch session events: {}", e))
+            })?;
+            attempts += 1;
+        }
+
+        let (full_width, full_height, format) = {
+            let state = lock_frame_state(&frame_state)?;
+            if state.width == 0 || state.height == 0 {
+                return Err(Error::CaptureFailed);
+            }
+            (
+                state.width,
+                state.height,
+                state.format.unwrap_or(ShmFormat::Xrgb8888),
+            )
+        };
+
+        let stride = full_width * 4;
+        let size = checked_buffer_size(full_width, full_height, 4, Some(stride))?;
+        let shm = self
+            .globals
+            .shm
+            .as_ref()
+            .ok_or_else(|| Error::UnsupportedProtocol("wl_shm not available".to_string()))?;
+        let mut tmp_file = tempfile::NamedTempFile::new().map_err(|e| {
+            Error::BufferCreation(format!("failed to create temporary file: {}", e))
+        })?;
+        tmp_file.as_file_mut().set_len(size as u64).map_err(|e| {
+            Error::BufferCreation(format!("failed to resize buffer to {} bytes: {}", size, e))
+        })?;
+        let mmap = unsafe {
+            memmap2::MmapMut::map_mut(&tmp_file)
+                .map_err(|e| Error::BufferCreation(format!("failed to memory-map buffer: {}", e)))?
+        };
+        let pool = shm.create_pool(
+            unsafe { BorrowedFd::borrow_raw(tmp_file.as_file().as_raw_fd()) },
+            size as i32,
+            &qh,
+            (),
+        );
+        let buffer = pool.create_buffer(
+            0,
+            full_width as i32,
+            full_height as i32,
+            stride as i32,
+            format,
+            &qh,
+            (),
+        );
+
+        // Set buffer placeholder — ext doesn't have a Buffer event like wlr
+        {
+            let mut state = lock_frame_state(&frame_state)?;
+            state.buffer = Some(vec![0u8; size]);
+        }
+
+        // create frame, attach buffer, capture
+        let frame = _session.create_frame(&qh, frame_state.clone());
+        frame.attach_buffer(&buffer);
+        frame.damage_buffer(0, 0, full_width as i32, full_height as i32);
+        frame.capture();
+        let mut attempts = 0;
+        loop {
+            {
+                let state = lock_frame_state(&frame_state)?;
+                if state.ready {
+                    if state.buffer.is_none() {
+                        return Err(Error::FrameCapture(
+                            "Frame is ready but buffer was not received".to_string(),
+                        ));
+                    }
+                    break;
+                }
+            }
+            if attempts >= MAX_ATTEMPTS {
+                return Err(Error::FrameCapture(
+                    "Timeout waiting for frame capture completion".to_string(),
+                ));
+            }
+            event_queue.blocking_dispatch(self).map_err(|e| {
+                Error::FrameCapture(format!("Failed to dispatch frame events: {}", e))
+            })?;
+            attempts += 1;
+        }
+        let mut buffer_data = mmap.to_vec();
+        convert_shm_to_rgba(&mut buffer_data, format);
+        let output_id = output.id().protocol_id();
+        let (mut final_data, mut final_width, mut final_height) =
+            self.apply_output_transform(buffer_data, full_width, full_height, output_id);
+        let region_w = region.width() as u32;
+        let region_h = region.height() as u32;
+        let need_crop = {
+            let info = self.globals.output_info.get(&output_id);
+            info.is_none_or(|info| {
+                region.x() != 0
+                    || region.y() != 0
+                    || region_w as i32 != info.logical_width
+                    || region_h as i32 != info.logical_height
+            })
+        };
+
+        if need_crop && region_w > 0 && region_h > 0 {
+            let scale = self
+                .globals
+                .output_info
+                .get(&output_id)
+                .map_or(1.0, |info| {
+                    if info.logical_scale_known && info.logical_scale.is_finite() {
+                        info.logical_scale
+                    } else {
+                        info.scale as f64
+                    }
+                });
+            let crop_x = ((region.x() as f64) * scale) as usize;
+            let crop_y = ((region.y() as f64) * scale) as usize;
+            let crop_w = ((region_w as f64) * scale) as u32;
+            let crop_h = ((region_h as f64) * scale) as u32;
+            let (cropped, cw, ch) = crop_rgba(
+                &final_data,
+                final_width,
+                final_height,
+                crop_x,
+                crop_y,
+                crop_w,
+                crop_h,
+            );
+            final_data = cropped;
+            final_width = cw;
+            final_height = ch;
         }
 
         Ok(CaptureResult {
@@ -426,13 +627,24 @@ impl WaylandCapture {
     ) -> Result<MultiOutputCaptureResult> {
         self.refresh_outputs()?;
 
-        let screencopy_manager =
-            self.globals
-                .screencopy_manager
-                .as_ref()
-                .ok_or(Error::UnsupportedProtocol(
-                    "zwlr_screencopy_manager_v1 not available".to_string(),
-                ))?;
+        let backend = self.backend_cloned()?;
+        match backend {
+            CaptureBackend::WlrScreencopy { manager } => {
+                self.capture_outputs_wlr(manager, parameters)
+            }
+            CaptureBackend::ExtImageCopyCapture {
+                source_manager,
+                copy_manager,
+            } => self.capture_outputs_ext(source_manager, copy_manager, parameters),
+        }
+    }
+
+    fn capture_outputs_wlr(
+        &mut self,
+        manager: ZwlrScreencopyManagerV1,
+        parameters: Vec<CaptureParameters>,
+    ) -> Result<MultiOutputCaptureResult> {
+        let screencopy_manager = &manager;
         let mut event_queue = self._connection.new_event_queue();
         let qh = event_queue.handle();
         let mut frame_states: HashMap<String, Arc<Mutex<FrameState>>> = HashMap::new();
@@ -476,6 +688,7 @@ impl WaylandCapture {
                 ready: false,
                 flags: 0,
                 linux_dmabuf_received: false,
+                constraints_done: false,
             }));
             let frame = screencopy_manager.capture_output_region(
                 if param.overlay_cursor_enabled() { 1 } else { 0 },
@@ -679,6 +892,58 @@ impl WaylandCapture {
         Ok(MultiOutputCaptureResult::new(results))
     }
 
+    fn capture_outputs_ext(
+        &mut self,
+        source_manager: ExtOutputImageCaptureSourceManagerV1,
+        copy_manager: ExtImageCopyCaptureManagerV1,
+        parameters: Vec<CaptureParameters>,
+    ) -> Result<MultiOutputCaptureResult> {
+        let mut results = HashMap::new();
+        for param in &parameters {
+            let (output_id, output_info) = self
+                .globals
+                .output_info
+                .iter()
+                .find(|(_, info)| info.name == param.output_name())
+                .ok_or_else(|| Error::OutputNotFound(param.output_name().to_string()))?;
+
+            let region = if let Some(region) = param.region_ref() {
+                let output_right = output_info.logical_width;
+                let output_bottom = output_info.logical_height;
+                if region.x() < 0
+                    || region.y() < 0
+                    || region.x() + region.width() > output_right
+                    || region.y() + region.height() > output_bottom
+                {
+                    return Err(Error::InvalidRegion(
+                        "Capture region extends outside output boundaries".to_string(),
+                    ));
+                }
+                *region
+            } else {
+                Region::new(0, 0, output_info.logical_width, output_info.logical_height)
+            };
+            let output_clone = {
+                let output = self
+                    .globals
+                    .outputs
+                    .iter()
+                    .find(|o| o.id().protocol_id() == *output_id)
+                    .ok_or_else(|| Error::OutputNotFound(param.output_name().to_string()))?;
+                output.clone()
+            };
+            let capture = self.capture_region_ext(
+                &source_manager,
+                &copy_manager,
+                &output_clone,
+                region,
+                param.overlay_cursor_enabled(),
+            )?;
+            results.insert(param.output_name().to_string(), capture);
+        }
+        Ok(MultiOutputCaptureResult::new(results))
+    }
+
     pub fn capture_outputs_with_scale(
         &mut self,
         parameters: Vec<CaptureParameters>,
@@ -695,4 +960,45 @@ impl WaylandCapture {
 
         Ok(MultiOutputCaptureResult::new(scaled_results))
     }
+
+    fn apply_output_transform(
+        &self,
+        data: Vec<u8>,
+        width: u32,
+        height: u32,
+        output_id: u32,
+    ) -> (Vec<u8>, u32, u32) {
+        if let Some(info) = self.globals.output_info.get(&output_id) {
+            if !matches!(
+                info.transform,
+                wayland_client::protocol::wl_output::Transform::Normal
+            ) {
+                return transform::apply_image_transform(&data, width, height, info.transform);
+            }
+        }
+        (data, width, height)
+    }
+}
+
+fn crop_rgba(
+    data: &[u8],
+    full_width: u32,
+    full_height: u32,
+    x: usize,
+    y: usize,
+    width: u32,
+    height: u32,
+) -> (Vec<u8>, u32, u32) {
+    let w = (width as usize).min(full_width as usize - x.min(full_width as usize));
+    let h = (height as usize).min(full_height as usize - y.min(full_height as usize));
+    if w == 0 || h == 0 {
+        return (Vec::new(), 0, 0);
+    }
+    let mut out = vec![0u8; w * h * 4];
+    for row in 0..h {
+        let src_start = ((y + row) * full_width as usize + x) * 4;
+        let dst_start = row * w * 4;
+        out[dst_start..dst_start + w * 4].copy_from_slice(&data[src_start..src_start + w * 4]);
+    }
+    (out, w as u32, h as u32)
 }

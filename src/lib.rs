@@ -232,6 +232,17 @@ impl MultiOutputCaptureResult {
     }
 }
 
+/// Backend protocol preference for capture initialization.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Backend {
+    /// Auto-detect: prefer `ext-image-copy-capture-v1`, fall back to `wlr-screencopy`.
+    Auto,
+    /// Force `ext-image-copy-capture-v1` (fails if not available).
+    ExtImageCopyCapture,
+    /// Force `wlr-screencopy` (fails if not available).
+    WlrScreencopy,
+}
+
 /// Main interface for taking screenshots.
 ///
 /// Provides methods for capturing screenshots of the entire screen,
@@ -241,16 +252,20 @@ pub struct Grim {
 }
 
 impl Grim {
-    /// Create a new Grim instance.
+    /// Create a new Grim instance with auto-detected backend.
     ///
     /// Establishes a connection to the Wayland compositor and initializes
-    /// the necessary protocols for screen capture.
+    /// the necessary protocols for screen capture. Prefers
+    /// `ext-image-copy-capture-v1` when available, falling back to
+    /// `wlr-screencopy`.
+    ///
+    /// Use [`Grim::new_ext`] or [`Grim::new_wlr`] to force a specific backend.
     ///
     /// # Errors
     ///
     /// Returns an error if:
     /// - Cannot connect to the Wayland compositor
-    /// - Required Wayland protocols are not available
+    /// - No capture protocol is available
     /// - Other initialization errors occur
     ///
     /// # Example
@@ -264,7 +279,63 @@ impl Grim {
     /// # }
     /// ```
     pub fn new() -> Result<Self> {
-        let platform_capture = PlatformCapture::new()?;
+        let platform_capture = PlatformCapture::new(Backend::Auto)?;
+        Ok(Self { platform_capture })
+    }
+
+    /// Create a new Grim instance forcing `ext-image-copy-capture-v1` backend.
+    ///
+    /// Fails if the compositor does not support this protocol (e.g. KDE, GNOME,
+    /// or older Sway releases). Use [`Grim::new`] for auto-detection if you need
+    /// to support multiple compositors.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::UnsupportedProtocol`] if `ext-image-copy-capture-v1`
+    /// is not available on the compositor.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use grim_rs::Grim;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// // Only works on compositors with ext-image-copy-capture-v1
+    /// // (Sway >= 2025, Hyprland, COSMIC)
+    /// let grim = Grim::new_ext()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new_ext() -> Result<Self> {
+        let platform_capture = PlatformCapture::new(Backend::ExtImageCopyCapture)?;
+        Ok(Self { platform_capture })
+    }
+
+    /// Create a new Grim instance forcing `wlr-screencopy` backend.
+    ///
+    /// Fails if the compositor does not support this protocol. Use
+    /// [`Grim::new`] for auto-detection if you need to support multiple
+    /// compositors.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::UnsupportedProtocol`] if `zwlr-screencopy-manager-v1`
+    /// is not available on the compositor.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use grim_rs::Grim;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// // Only works on compositors with wlr-screencopy
+    /// // (older Sway, River, Wayfire, Niri)
+    /// let grim = Grim::new_wlr()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new_wlr() -> Result<Self> {
+        let platform_capture = PlatformCapture::new(Backend::WlrScreencopy)?;
         Ok(Self { platform_capture })
     }
 

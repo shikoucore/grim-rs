@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.9]
 
+### Added
+
+- **`ext-image-copy-capture-v1` backend**: New capture protocol supported alongside the existing `wlr-screencopy`. Auto-detection prefers `ext-image-copy-capture-v1` when available (Sway ≥ 2025, Hyprland, COSMIC), falling back to `wlr-screencopy`. New constructors: `Grim::new_ext()` and `Grim::new_wlr()` to force a specific backend. `Grim::new()` continues to work with auto-detection. Public `Backend` enum exposed: `Auto`, `ExtImageCopyCapture`, `WlrScreencopy`. See [library examples — Backend selection](doc/library_examples.md#backend-selection) for usage.
+
 ### Changed
 
 - **`Box` renamed to `Region`**: The geometry struct `Box` has been renamed to `Region` to eliminate the name collision with `std::boxed::Box`. This is a breaking change — all imports must change from `use grim_rs::Box` (or `use grim_rs::geometry::Box`) to `use grim_rs::Region`. The migration is a simple find-and-replace: `Box::new(` → `Region::new(`, `: Box` → `: Region`. See [MIGRATION.md](MIGRATION.md) for full details.

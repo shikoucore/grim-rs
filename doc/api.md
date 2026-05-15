@@ -3,11 +3,16 @@
 This is a practical API index for the public surface.
 For full rustdoc details, see [docs.rs/grim-rs](https://docs.rs/grim-rs).
 
+> an example of usage is shown in [library examples](/doc/library_examples.md)
+
 ## Core Methods
 
 ### Initialization
 
-- `Grim::new()` - Create new Grim instance and connect to Wayland compositor
+- `Grim::new()` - Create new Grim instance with auto-detected backend (prefers `ext-image-copy-capture-v1`, falls back to `wlr-screencopy`)
+- `Grim::new_ext()` - Force `ext-image-copy-capture-v1` backend (fails if compositor doesn't support it)
+- `Grim::new_wlr()` - Force `wlr-screencopy` backend (fails if compositor doesn't support it)
+- `Backend` enum — `Auto`, `ExtImageCopyCapture`, `WlrScreencopy`
 
 ### Getting Display Information
 

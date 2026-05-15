@@ -5,7 +5,7 @@ how we work and what is required for contributions to be accepted.
 
 ## Project Scope
 
-- grim-rs targets Wayland compositors that support `zwlr_screencopy_manager_v1`.
+- grim-rs targets Wayland compositors that support `ext-image-copy-capture-v1` or `zwlr_screencopy_manager_v1`.
 - The library is Rust-first and aims for a clean public API with minimal
   dependencies and predictable behavior.
 

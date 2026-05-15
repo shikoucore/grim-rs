@@ -40,6 +40,20 @@ impl Dispatch<WlRegistry, ()> for WaylandCapture {
                         }
                     }
                 }
+                "ext_output_image_capture_source_manager_v1" => {
+                    state.globals.ext_source_manager =
+                        Some(registry.bind::<ExtOutputImageCaptureSourceManagerV1, _, _>(
+                            name,
+                            version,
+                            qh,
+                            (),
+                        ));
+                }
+                "ext_image_copy_capture_manager_v1" => {
+                    state.globals.ext_copy_manager = Some(
+                        registry.bind::<ExtImageCopyCaptureManagerV1, _, _>(name, version, qh, ()),
+                    );
+                }
                 "wl_output" => {
                     let output = registry.bind::<WlOutput, _, _>(name, version, qh, ());
                     let output_id = output.id().protocol_id();
@@ -422,5 +436,115 @@ impl Dispatch<ZxdgOutputManagerV1, ()> for WaylandCapture {
         _conn: &Connection,
         _qh: &QueueHandle<Self>,
     ) {
+    }
+}
+
+impl Dispatch<ExtImageCaptureSourceV1, ()> for WaylandCapture {
+    fn event(
+        _state: &mut Self,
+        _proxy: &ExtImageCaptureSourceV1,
+        _event: <ExtImageCaptureSourceV1 as Proxy>::Event,
+        _data: &(),
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+    ) {
+    }
+}
+
+impl Dispatch<ExtOutputImageCaptureSourceManagerV1, ()> for WaylandCapture {
+    fn event(
+        _state: &mut Self,
+        _proxy: &ExtOutputImageCaptureSourceManagerV1,
+        _event: <ExtOutputImageCaptureSourceManagerV1 as Proxy>::Event,
+        _data: &(),
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+    ) {
+    }
+}
+
+impl Dispatch<ExtImageCopyCaptureManagerV1, ()> for WaylandCapture {
+    fn event(
+        _state: &mut Self,
+        _proxy: &ExtImageCopyCaptureManagerV1,
+        _event: <ExtImageCopyCaptureManagerV1 as Proxy>::Event,
+        _data: &(),
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+    ) {
+    }
+}
+
+impl Dispatch<ExtImageCopyCaptureSessionV1, Arc<Mutex<FrameState>>> for WaylandCapture {
+    fn event(
+        _state: &mut Self,
+        _session: &ExtImageCopyCaptureSessionV1,
+        event: <ExtImageCopyCaptureSessionV1 as Proxy>::Event,
+        frame_state: &Arc<Mutex<FrameState>>,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+    ) {
+        use wayland_protocols::ext::image_copy_capture::v1::client::ext_image_copy_capture_session_v1::Event;
+        let mut s = match lock_frame_state(frame_state) {
+            Ok(s) => s,
+            Err(err) => {
+                log::error!("Dropping ext session event due to mutex error: {}", err);
+                return;
+            }
+        };
+
+        match event {
+            Event::BufferSize { width, height } => {
+                s.width = width;
+                s.height = height;
+            }
+            Event::ShmFormat {
+                format: wayland_client::WEnum::Value(f),
+            } => {
+                s.format = Some(f);
+            }
+            Event::ShmFormat { .. } => {}
+            Event::Done => {
+                s.constraints_done = true;
+            }
+            Event::Stopped => {
+                log::warn!("Capture session stopped by compositor");
+                s.ready = true;
+            }
+            _ => {}
+        }
+    }
+}
+
+impl Dispatch<ExtImageCopyCaptureFrameV1, Arc<Mutex<FrameState>>> for WaylandCapture {
+    fn event(
+        _state: &mut Self,
+        frame: &ExtImageCopyCaptureFrameV1,
+        event: <ExtImageCopyCaptureFrameV1 as Proxy>::Event,
+        frame_state: &Arc<Mutex<FrameState>>,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+    ) {
+        use wayland_protocols::ext::image_copy_capture::v1::client::ext_image_copy_capture_frame_v1::Event;
+        let mut s = match lock_frame_state(frame_state) {
+            Ok(s) => s,
+            Err(err) => {
+                log::error!("Dropping ext frame event due to mutex error: {}", err);
+                return;
+            }
+        };
+
+        match event {
+            Event::Ready => {
+                s.ready = true;
+                frame.destroy();
+            }
+            Event::Failed { reason } => {
+                log::error!("Capture frame failed: reason={:?}", reason);
+                s.ready = true;
+                frame.destroy();
+            }
+            _ => {}
+        }
     }
 }

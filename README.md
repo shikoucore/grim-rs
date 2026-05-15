@@ -3,10 +3,15 @@
 [![Crates.io Version](https://img.shields.io/crates/v/grim-rs.svg)](https://crates.io/crates/grim-rs)
 
 > [!IMPORTANT]
-> **Breaking changes in 0.1.9:** `Box` renamed to `Region`. Read [MIGRATION.md](MIGRATION.md) **before** upgrading — the migration is straightforward but must be applied.
+> **Breaking changes in 0.1.9:**
+
+### Version 0.1.9
+### Read the documents carefully
+
+[CHANGELOG.md](CHANGELOG.md), [MIGRATION.md](MIGRATION.md) ,[Library Examples](/doc/library_examples.md), [API](doc/api.md)
 
 > if you like this project, then the best way to express gratitude is to give it a star ⭐, it doesn't cost you anything, but I understand that I'm moving the project in the right direction.
-
+___
 Rust implementation of `grim-rs` screenshot utility for Wayland compositors.
 
 > See [CHANGELOG.md](CHANGELOG.md) for version changes.
@@ -15,7 +20,7 @@ Rust implementation of `grim-rs` screenshot utility for Wayland compositors.
 ## Features
 
 - Pure Rust implementation
-- Native Wayland capture via `wl_shm` + `zwlr_screencopy_manager_v1`
+- Native Wayland capture via `ext-image-copy-capture-v1` or `zwlr_screencopy_manager_v1` with auto-detection
 - Multi-output capture and compositing
 - Full output transform handling (all 8 Wayland transform modes)
 - Adaptive image scaling (Nearest / Triangle / CatmullRom / Lanczos3)
@@ -84,7 +89,9 @@ grim-rs -o DP-1 -c monitor.png
 ### Supported Wayland Protocols
 
 - `wl_shm` - Shared memory buffers
-- `zwlr_screencopy_manager_v1` - Screenshot capture (wlroots extension)
+- `ext-image-copy-capture-v1` - Screenshot capture (new standard protocol)
+- `zwlr_screencopy_manager_v1` - Screenshot capture (wlroots extension, fallback)
+- `ext-output-image-capture-source-manager-v1` - Output capture sources
 - `wl_output` - Output information
 
 ## API Reference
@@ -96,7 +103,7 @@ Use:
 
 At a glance:
 
-- Initialize: `Grim::new()`
+- Initialize: `Grim::new()` (auto), `Grim::new_ext()`, `Grim::new_wlr()`
 - Capture: `capture_all*`, `capture_output*`, `capture_region*`, `capture_outputs*`
 - Encode/save: `save_png*`, `save_jpeg*`, `to_png*`, `to_jpeg*`
 - Stdout/stderr helpers: `write_png_to_stdout*`, `write_jpeg_to_stdout*`
@@ -169,10 +176,11 @@ Priority order: `GRIM_DEFAULT_DIR` → `XDG_PICTURES_DIR` (if it exists) → cur
 - ✅ Wayfire
 - ✅ Niri
 - ✅ Any wlroots-based compositor with `zwlr_screencopy_manager_v1`
+- ✅ Compositors with `ext-image-copy-capture-v1` (Sway ≥ 2025, Hyprland, COSMIC)
 
 ## Limitations
 
-- Requires compositor with `zwlr_screencopy_manager_v1` protocol support
+- Requires compositor with `ext-image-copy-capture-v1` or `zwlr_screencopy_manager_v1` protocol support
 - Linux-only (due to shared memory implementation)
 - Cursor overlay depends on compositor support
 
@@ -194,6 +202,7 @@ cargo test --all-targets
 cargo run --example comprehensive_demo
 cargo run --example profile_test
 cargo run --example second_monitor_demo
+cargo run --example capture_screenshots
 ```
 
 ## Contributing
