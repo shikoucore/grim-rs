@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use grim_rs::{Box as GrimBox, CaptureParameters, Grim};
+use grim_rs::{CaptureParameters, Grim, Region};
 
 fn benchmark_capture_all(c: &mut Criterion) {
     let mut group = c.benchmark_group("capture_all");
@@ -37,9 +37,9 @@ fn benchmark_capture_region(c: &mut Criterion) {
     let mut group = c.benchmark_group("capture_region");
 
     let regions = [
-        ("small_100x100", GrimBox::new(0, 0, 100, 100)),
-        ("medium_500x500", GrimBox::new(0, 0, 500, 500)),
-        ("large_1920x1080", GrimBox::new(0, 0, 1920, 1080)),
+        ("small_100x100", Region::new(0, 0, 100, 100)),
+        ("medium_500x500", Region::new(0, 0, 500, 500)),
+        ("large_1920x1080", Region::new(0, 0, 1920, 1080)),
     ];
 
     for (name, region) in regions.iter() {
@@ -65,7 +65,7 @@ fn benchmark_capture_region_with_scale(c: &mut Criterion) {
         None => return,
     };
     let geom = output.geometry();
-    let region = GrimBox::new(
+    let region = Region::new(
         geom.x() + geom.width() / 4,
         geom.y() + geom.height() / 4,
         (geom.width() / 2).max(1),
@@ -149,7 +149,7 @@ fn benchmark_capture_outputs(c: &mut Criterion) {
                 params = params.overlay_cursor(true);
             }
             let geom = output.geometry();
-            let region = GrimBox::new(0, 0, (geom.width() / 2).max(1), (geom.height() / 2).max(1));
+            let region = Region::new(0, 0, (geom.width() / 2).max(1), (geom.height() / 2).max(1));
             params.region(region)
         })
         .collect();
@@ -178,7 +178,7 @@ fn benchmark_capture_outputs_with_scale(c: &mut Criterion) {
         .iter()
         .map(|output| {
             let geom = output.geometry();
-            let region = GrimBox::new(0, 0, (geom.width() / 2).max(1), (geom.height() / 2).max(1));
+            let region = Region::new(0, 0, (geom.width() / 2).max(1), (geom.height() / 2).max(1));
             CaptureParameters::new(output.name()).region(region)
         })
         .collect();

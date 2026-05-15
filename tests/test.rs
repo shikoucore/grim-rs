@@ -1,4 +1,4 @@
-use grim_rs::{Box as GrimBox, CaptureParameters, CaptureResult, Error, Grim};
+use grim_rs::{CaptureParameters, CaptureResult, Error, Grim, Region};
 use std::collections::HashMap;
 use wayland_client::protocol::wl_shm::Format as ShmFormat;
 
@@ -27,7 +27,7 @@ fn convert_shm_to_rgba_for_test(buffer_data: &mut [u8], format: ShmFormat) {
 
 #[test]
 fn test_box_struct_creation() {
-    let box1 = GrimBox::new(10, 20, 100, 200);
+    let box1 = Region::new(10, 20, 100, 200);
     assert_eq!(box1.x(), 10);
     assert_eq!(box1.y(), 20);
     assert_eq!(box1.width(), 100);
@@ -36,23 +36,23 @@ fn test_box_struct_creation() {
 
 #[test]
 fn test_box_is_empty() {
-    let box1 = GrimBox::new(0, 0, 0, 0);
+    let box1 = Region::new(0, 0, 0, 0);
     assert!(box1.is_empty());
 
-    let box2 = GrimBox::new(0, 0, -10, 10);
+    let box2 = Region::new(0, 0, -10, 10);
     assert!(box2.is_empty());
 
-    let box3 = GrimBox::new(0, 0, 10, -5);
+    let box3 = Region::new(0, 0, 10, -5);
     assert!(box3.is_empty());
 
-    let box4 = GrimBox::new(0, 0, 10, 10);
+    let box4 = Region::new(0, 0, 10, 10);
     assert!(!box4.is_empty());
 }
 
 #[test]
 fn test_box_intersection() {
-    let box1 = GrimBox::new(0, 0, 100, 100);
-    let box2 = GrimBox::new(50, 50, 100, 100);
+    let box1 = Region::new(0, 0, 100, 100);
+    let box2 = Region::new(50, 50, 100, 100);
 
     assert!(box1.intersects(&box2));
     let intersection = box1.intersection(&box2).unwrap();
@@ -61,8 +61,8 @@ fn test_box_intersection() {
     assert_eq!(intersection.width(), 50);
     assert_eq!(intersection.height(), 50);
 
-    let box3 = GrimBox::new(0, 0, 10, 10);
-    let box4 = GrimBox::new(100, 100, 10, 10);
+    let box3 = Region::new(0, 0, 10, 10);
+    let box4 = Region::new(100, 100, 10, 10);
     assert!(!box3.intersects(&box4));
     assert!(box3.intersection(&box4).is_none());
 }
@@ -70,7 +70,7 @@ fn test_box_intersection() {
 #[test]
 fn test_box_string_parsing() {
     let box_str = "10,20 300x400";
-    let parsed: GrimBox = box_str.parse().unwrap();
+    let parsed: Region = box_str.parse().unwrap();
     assert_eq!(parsed.x(), 10);
     assert_eq!(parsed.y(), 20);
     assert_eq!(parsed.width(), 300);
@@ -91,12 +91,12 @@ fn test_capture_result_struct() {
 #[test]
 fn test_capture_parameters_struct() {
     let params = CaptureParameters::new("eDP-1")
-        .region(GrimBox::new(0, 0, 800, 600))
+        .region(Region::new(0, 0, 800, 600))
         .overlay_cursor(true)
         .scale(1.5);
 
     assert_eq!(params.output_name(), "eDP-1");
-    assert_eq!(params.region_ref(), Some(&GrimBox::new(0, 0, 800, 600)));
+    assert_eq!(params.region_ref(), Some(&Region::new(0, 0, 800, 600)));
     assert!(params.overlay_cursor_enabled());
     assert_eq!(params.scale_factor(), Some(1.5));
 }
@@ -115,7 +115,7 @@ fn test_error_messages() {
 
 #[test]
 fn test_crate_export_structs() {
-    let _box = GrimBox::new(0, 0, 100, 100);
+    let _box = Region::new(0, 0, 100, 100);
     let _params = CaptureParameters::new("test");
     let _result = CaptureResult::new(vec![], 0, 0);
 }
@@ -242,20 +242,20 @@ fn test_scale_functionality_validation() {
 
 #[test]
 fn test_geometry_bounds_checking() {
-    let invalid_box = GrimBox::new(0, 0, -10, 100);
+    let invalid_box = Region::new(0, 0, -10, 100);
     assert!(invalid_box.is_empty());
 
-    let invalid_box2 = GrimBox::new(0, 0, 100, -10);
+    let invalid_box2 = Region::new(0, 0, 100, -10);
     assert!(invalid_box2.is_empty());
 
-    let valid_box = GrimBox::new(10, 10, 100, 100);
+    let valid_box = Region::new(10, 10, 100, 100);
     assert!(!valid_box.is_empty());
 }
 
 #[test]
 fn test_region_intersection_with_outputs() {
-    let output_box = GrimBox::new(0, 0, 1920, 1080);
-    let capture_region = GrimBox::new(100, 100, 500, 500);
+    let output_box = Region::new(0, 0, 1920, 1080);
+    let capture_region = Region::new(100, 100, 500, 500);
 
     assert!(output_box.intersects(&capture_region));
     let intersection = output_box.intersection(&capture_region).unwrap();
@@ -264,7 +264,7 @@ fn test_region_intersection_with_outputs() {
     assert_eq!(intersection.width(), 500);
     assert_eq!(intersection.height(), 500);
 
-    let region_outside = GrimBox::new(2000, 2000, 100, 100);
+    let region_outside = Region::new(2000, 2000, 100, 100);
     assert!(!output_box.intersects(&region_outside));
     assert!(output_box.intersection(&region_outside).is_none());
 }
@@ -564,7 +564,7 @@ fn test_jpeg_disabled() {
 #[test]
 fn test_read_region_from_stdin() {
     let region_str = "10,20 300x400";
-    let result: std::result::Result<GrimBox, _> = region_str.parse();
+    let result: std::result::Result<Region, _> = region_str.parse();
     assert!(result.is_ok());
     let region = result.unwrap();
     assert_eq!(region.x(), 10);

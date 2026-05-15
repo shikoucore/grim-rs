@@ -10,7 +10,7 @@ Prerequisites:
 ## Basic capture operations
 
 ```rust,no_run
-use grim_rs::{Box, Grim};
+use grim_rs::{Region, Grim};
 
 fn main() -> grim_rs::Result<()> {
     let mut grim = Grim::new()?;
@@ -18,7 +18,7 @@ fn main() -> grim_rs::Result<()> {
     let result = grim.capture_all()?;
     grim.save_png(result.data(), result.width(), result.height(), "screenshot.png")?;
 
-    let region = Box::new(100, 100, 800, 600);
+    let region = Region::new(100, 100, 800, 600);
     let result = grim.capture_region(region)?;
     grim.save_png(result.data(), result.width(), result.height(), "region.png")?;
 
@@ -63,7 +63,7 @@ fn main() -> grim_rs::Result<()> {
 ## Capture with scaling
 
 ```rust,no_run
-use grim_rs::{Box, Grim};
+use grim_rs::{Region, Grim};
 
 fn main() -> grim_rs::Result<()> {
     let mut grim = Grim::new()?;
@@ -71,7 +71,7 @@ fn main() -> grim_rs::Result<()> {
     let result = grim.capture_all_with_scale(0.5)?;
     grim.save_png(result.data(), result.width(), result.height(), "thumbnail.png")?;
 
-    let region = Box::new(0, 0, 1920, 1080);
+    let region = Region::new(0, 0, 1920, 1080);
     let result = grim.capture_region_with_scale(region, 0.8)?;
     grim.save_png(result.data(), result.width(), result.height(), "scaled.png")?;
 
@@ -85,14 +85,14 @@ fn main() -> grim_rs::Result<()> {
 ## Multiple outputs
 
 ```rust,no_run
-use grim_rs::{Box, CaptureParameters, Grim};
+use grim_rs::{Region, CaptureParameters, Grim};
 
 fn main() -> grim_rs::Result<()> {
     let mut grim = Grim::new()?;
 
     let parameters = vec![
         CaptureParameters::new("DP-1").overlay_cursor(true),
-        CaptureParameters::new("HDMI-A-1").region(Box::new(0, 0, 1920, 1080)),
+        CaptureParameters::new("HDMI-A-1").region(Region::new(0, 0, 1920, 1080)),
     ];
 
     let results = grim.capture_outputs_with_scale(parameters, 0.5)?;

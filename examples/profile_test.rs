@@ -102,9 +102,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("8. Region capture (different sizes):");
     let regions = [
-        ("Small (100x100)", grim_rs::Box::new(0, 0, 100, 100)),
-        ("Medium (500x500)", grim_rs::Box::new(0, 0, 500, 500)),
-        ("Large (1920x1080)", grim_rs::Box::new(0, 0, 1920, 1080)),
+        ("Small (100x100)", grim_rs::Region::new(0, 0, 100, 100)),
+        ("Medium (500x500)", grim_rs::Region::new(0, 0, 500, 500)),
+        ("Large (1920x1080)", grim_rs::Region::new(0, 0, 1920, 1080)),
     ];
 
     for (name, region) in &regions {

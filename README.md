@@ -2,6 +2,9 @@
 
 [![Crates.io Version](https://img.shields.io/crates/v/grim-rs.svg)](https://crates.io/crates/grim-rs)
 
+> [!IMPORTANT]
+> **Breaking changes in 0.1.9:** `Box` renamed to `Region`. Read [MIGRATION.md](MIGRATION.md) **before** upgrading — the migration is straightforward but must be applied.
+
 > if you like this project, then the best way to express gratitude is to give it a star ⭐, it doesn't cost you anything, but I understand that I'm moving the project in the right direction.
 
 Rust implementation of `grim-rs` screenshot utility for Wayland compositors.
@@ -121,7 +124,7 @@ cargo doc --open
 2. **CaptureResult** - Contains screenshot data and dimensions
 3. **CaptureParameters** - Parameters for multi-output capture
 4. **Buffer** - Shared memory buffer management
-5. **Box** - Region and coordinate handling
+5. **Region** - Region and coordinate handling
 6. **Output** - Monitor information with transform support
 7. **Error** - Comprehensive error handling
 

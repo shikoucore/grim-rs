@@ -1,5 +1,5 @@
 pub(super) use crate::{
-    Box, CaptureParameters, CaptureResult, Error, MultiOutputCaptureResult, Output, Result,
+    CaptureParameters, CaptureResult, Error, MultiOutputCaptureResult, Output, Region, Result,
 };
 pub(super) use std::collections::HashMap;
 pub(super) use std::os::fd::{AsRawFd, BorrowedFd};

@@ -1,4 +1,4 @@
-use grim_rs::{Box as GrimBox, CaptureParameters, Grim};
+use grim_rs::{CaptureParameters, Grim, Region};
 use std::env;
 use std::fs;
 use std::io::{self, BufRead};
@@ -162,7 +162,7 @@ fn main() -> grim_rs::Result<()> {
 #[derive(Debug)]
 struct Options {
     scale: Option<f64>,
-    geometry: Option<GrimBox>,
+    geometry: Option<Region>,
     filetype: FileType,
     jpeg_quality: u8,
     png_level: u8,

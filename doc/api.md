@@ -19,8 +19,8 @@ For full rustdoc details, see [docs.rs/grim-rs](https://docs.rs/grim-rs).
 - `capture_all_with_scale(scale: f64)` - Capture entire screen with scaling
 - `capture_output(output_name: &str)` - Capture specific output by name
 - `capture_output_with_scale(output_name: &str, scale: f64)` - Capture output with scaling
-- `capture_region(region: Box)` - Capture specific rectangular region
-- `capture_region_with_scale(region: Box, scale: f64)` - Capture region with scaling
+- `capture_region(region: Region)` - Capture specific rectangular region
+- `capture_region_with_scale(region: Region, scale: f64)` - Capture region with scaling
 - `capture_outputs(parameters: Vec<CaptureParameters>)` - Capture multiple outputs with different parameters
 - `capture_outputs_with_scale(parameters: Vec<CaptureParameters>, default_scale: f64)` - Capture multiple outputs with scaling
 
@@ -78,14 +78,14 @@ For full rustdoc details, see [docs.rs/grim-rs](https://docs.rs/grim-rs).
 
 - Fields are private
 - `name()` - Output name (e.g., `eDP-1`, `HDMI-A-1`)
-- `geometry()` - Output position and size (`Box`)
+- `geometry()` - Output position and size (`Region`)
 - `scale()` - Output scale factor
 - `description()` - Optional monitor description
 
-### `Box`
+### `Region`
 
 - Fields are private
-- `Box::new(x, y, width, height)` - Create region
+- `Region::new(x, y, width, height)` - Create region
 - Accessors: `x()`, `y()`, `width()`, `height()`
 - Utilities: `is_empty()`, `intersects(...)`, `intersection(...)`
 - Parse from string: `"x,y widthxheight"`

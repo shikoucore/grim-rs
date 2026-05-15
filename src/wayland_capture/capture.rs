@@ -54,7 +54,7 @@ impl WaylandCapture {
     fn capture_region_for_output(
         &mut self,
         output: &WlOutput,
-        region: Box,
+        region: Region,
         overlay_cursor: bool,
     ) -> Result<CaptureResult> {
         if region.width() <= 0 || region.height() <= 0 {
@@ -244,7 +244,7 @@ impl WaylandCapture {
 
     fn composite_region(
         &mut self,
-        region: Box,
+        region: Region,
         outputs: &[(WlOutput, OutputInfo)],
         overlay_cursor: bool,
     ) -> Result<CaptureResult> {
@@ -267,7 +267,7 @@ impl WaylandCapture {
         let mut any_capture = false;
 
         for (output, info) in outputs {
-            let output_box = Box::new(
+            let output_box = Region::new(
                 info.logical_x,
                 info.logical_y,
                 info.logical_width,
@@ -283,7 +283,7 @@ impl WaylandCapture {
                 } else {
                     info.scale as f64
                 };
-                let local_region = Box::new(
+                let local_region = Region::new(
                     intersection.x() - info.logical_x,
                     intersection.y() - info.logical_y,
                     intersection.width(),
@@ -343,7 +343,7 @@ impl WaylandCapture {
 
                 Output {
                     name: info.name.clone(),
-                    geometry: Box::new(x, y, width, height),
+                    geometry: Region::new(x, y, width, height),
                     scale: info.scale,
                     description: info.description.clone(),
                 }
@@ -375,7 +375,7 @@ impl WaylandCapture {
             max_y = max_y.max(info.logical_y + info.logical_height);
         }
 
-        let region = Box::new(min_x, min_y, max_x - min_x, max_y - min_y);
+        let region = Region::new(min_x, min_y, max_x - min_x, max_y - min_y);
         self.composite_region(region, &snapshot, false)
     }
 
@@ -392,7 +392,7 @@ impl WaylandCapture {
             .find(|(_, info)| info.name == output_name)
             .ok_or_else(|| Error::OutputNotFound(output_name.to_string()))?;
 
-        let local_region = Box::new(0, 0, info.logical_width, info.logical_height);
+        let local_region = Region::new(0, 0, info.logical_width, info.logical_height);
         self.capture_region_for_output(&output_handle, local_region, false)
     }
 
@@ -405,13 +405,17 @@ impl WaylandCapture {
         self.scale_image_data(result, scale)
     }
 
-    pub fn capture_region(&mut self, region: Box) -> Result<CaptureResult> {
+    pub fn capture_region(&mut self, region: Region) -> Result<CaptureResult> {
         self.refresh_outputs()?;
         let snapshot = self.collect_outputs_snapshot();
         self.composite_region(region, &snapshot, false)
     }
 
-    pub fn capture_region_with_scale(&mut self, region: Box, scale: f64) -> Result<CaptureResult> {
+    pub fn capture_region_with_scale(
+        &mut self,
+        region: Region,
+        scale: f64,
+    ) -> Result<CaptureResult> {
         let result = self.capture_region(region)?;
         self.scale_image_data(result, scale)
     }
@@ -462,7 +466,7 @@ impl WaylandCapture {
                 }
                 *region
             } else {
-                Box::new(0, 0, output_info.logical_width, output_info.logical_height)
+                Region::new(0, 0, output_info.logical_width, output_info.logical_height)
             };
             let frame_state = Arc::new(Mutex::new(FrameState {
                 buffer: None,

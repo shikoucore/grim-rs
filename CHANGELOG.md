@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.9]
 
+### Changed
+
+- **`Box` renamed to `Region`**: The geometry struct `Box` has been renamed to `Region` to eliminate the name collision with `std::boxed::Box`. This is a breaking change — all imports must change from `use grim_rs::Box` (or `use grim_rs::geometry::Box`) to `use grim_rs::Region`. The migration is a simple find-and-replace: `Box::new(` → `Region::new(`, `: Box` → `: Region`. See [MIGRATION.md](MIGRATION.md) for full details.
+
 ### Fixed
 
 - **dmabuf frame delivery for `zwlr_screencopy`**: Completed the `LinuxDmabuf` event handler so frames delivered via dmabuf (instead of `wl_shm`) are correctly processed. Captures no longer time out on compositors that prefer dmabuf — the handler populates frame dimensions and format, and the existing shm-buffer path performs the cross-device copy transparently. When a compositor sends both `Buffer` and `LinuxDmabuf` events, the `Buffer` format takes precedence to avoid mismatches.

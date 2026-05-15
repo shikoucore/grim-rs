@@ -8,7 +8,7 @@ use chrono::Local;
 ///     cargo run --example comprehensive_demo
 ///
 /// All screenshots will be saved to the project root directory.
-use grim_rs::{Box, CaptureParameters, Grim, Result};
+use grim_rs::{CaptureParameters, Grim, Region, Result};
 use std::fs::File;
 use std::io::Write;
 
@@ -134,7 +134,7 @@ fn main() -> Result<()> {
     println!("Saved: {}\n", filename);
 
     // Capture 800x600 region starting at (100, 100)
-    let region = Box::new(100, 100, 800, 600);
+    let region = Region::new(100, 100, 800, 600);
     println!("Region: {}", region);
 
     let region_result = grim.capture_region(region)?;
@@ -174,7 +174,7 @@ fn main() -> Result<()> {
 
         let params = vec![
             CaptureParameters::new(outputs[0].name()).overlay_cursor(true),
-            CaptureParameters::new(outputs[1].name()).region(Box::new(0, 0, 400, 300)),
+            CaptureParameters::new(outputs[1].name()).region(Region::new(0, 0, 400, 300)),
         ];
 
         let multi_result = grim.capture_outputs(params)?;
@@ -197,7 +197,7 @@ fn main() -> Result<()> {
     }
 
     // Capture a small region for format tests
-    let format_region = Box::new(0, 0, 400, 300);
+    let format_region = Region::new(0, 0, 400, 300);
     let format_result = grim.capture_region(format_region)?;
 
     // PNG with default compression
@@ -249,7 +249,7 @@ fn main() -> Result<()> {
     }
     println!();
 
-    let small_region = Box::new(0, 0, 200, 150);
+    let small_region = Region::new(0, 0, 200, 150);
     let small_result = grim.capture_region(small_region)?;
 
     // Convert to PNG bytes
@@ -289,7 +289,7 @@ fn main() -> Result<()> {
 
         let span_x = output1.x() + output1.width() - 200;
         let span_width = 400;
-        let span_region = Box::new(span_x, output1.y(), span_width, 400);
+        let span_region = Region::new(span_x, output1.y(), span_width, 400);
 
         println!("Spanning region: {}", span_region);
 
@@ -312,7 +312,7 @@ fn main() -> Result<()> {
         println!("Skipping spanning region (only 1 output available)\n");
     }
 
-    let test_region = Box::new(0, 0, 640, 480);
+    let test_region = Region::new(0, 0, 640, 480);
     let test_result = grim.capture_region(test_region)?;
 
     let filename_png = generate_demo_filename("compare_png", "png");

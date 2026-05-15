@@ -1,14 +1,14 @@
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Box {
+pub struct Region {
     x: i32,
     y: i32,
     width: i32,
     height: i32,
 }
 
-impl Box {
+impl Region {
     pub fn new(x: i32, y: i32, width: i32, height: i32) -> Self {
         Self {
             x,
@@ -38,7 +38,7 @@ impl Box {
         self.width <= 0 || self.height <= 0
     }
 
-    pub fn intersects(&self, other: &Box) -> bool {
+    pub fn intersects(&self, other: &Region) -> bool {
         if self.is_empty() || other.is_empty() {
             return false;
         }
@@ -51,7 +51,7 @@ impl Box {
         x2 > x1 && y2 > y1
     }
 
-    pub fn intersection(&self, other: &Box) -> Option<Box> {
+    pub fn intersection(&self, other: &Region) -> Option<Region> {
         if !self.intersects(other) {
             return None;
         }
@@ -61,17 +61,17 @@ impl Box {
         let x2 = (self.x + self.width).min(other.x + other.width);
         let y2 = (self.y + self.height).min(other.y + other.height);
 
-        Some(Box::new(x1, y1, x2 - x1, y2 - y1))
+        Some(Region::new(x1, y1, x2 - x1, y2 - y1))
     }
 }
 
-impl fmt::Display for Box {
+impl fmt::Display for Region {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{},{} {}x{}", self.x, self.y, self.width, self.height)
     }
 }
 
-impl std::str::FromStr for Box {
+impl std::str::FromStr for Region {
     type Err = crate::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -100,6 +100,6 @@ impl std::str::FromStr for Box {
             .parse()
             .map_err(|_| crate::Error::InvalidGeometry(s.to_string()))?;
 
-        Ok(Box::new(x, y, width, height))
+        Ok(Region::new(x, y, width, height))
     }
 }

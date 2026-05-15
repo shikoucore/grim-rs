@@ -1,10 +1,10 @@
-use grim_rs::geometry::Box;
+use grim_rs::geometry::Region;
 use grim_rs::{CaptureParameters, CaptureResult, MultiOutputCaptureResult};
 use std::collections::HashMap;
 
 #[test]
 fn box_getters_work_correctly() {
-    let b = Box::new(10, 20, 300, 400);
+    let b = Region::new(10, 20, 300, 400);
 
     assert_eq!(b.x(), 10);
     assert_eq!(b.y(), 20);
@@ -35,7 +35,7 @@ fn capture_result_into_data_consumes() {
 
 #[test]
 fn capture_parameters_builder_pattern_works() {
-    let region = Box::new(0, 0, 100, 100);
+    let region = Region::new(0, 0, 100, 100);
 
     let params = CaptureParameters::new("HDMI-A-1")
         .region(region)
@@ -60,7 +60,7 @@ fn capture_parameters_minimal_construction() {
 
 #[test]
 fn capture_parameters_builder_is_chainable() {
-    let region = Box::new(10, 20, 640, 480);
+    let region = Region::new(10, 20, 640, 480);
 
     let params = CaptureParameters::new("DP-1")
         .region(region)
@@ -153,7 +153,7 @@ fn capture_result_data_returns_slice() {
 
 #[test]
 fn box_encapsulation_prevents_direct_field_access() {
-    let b = Box::new(100, 200, 300, 400);
+    let b = Region::new(100, 200, 300, 400);
 
     assert_eq!(b.x(), 100);
     assert_eq!(b.y(), 200);
