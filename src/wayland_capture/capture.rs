@@ -225,7 +225,9 @@ impl WaylandCapture {
         }
 
         let mut buffer_data = mmap.to_vec();
-        convert_shm_to_rgba(&mut buffer_data, format);
+        if let Some(pf) = shm_to_pixel(format) {
+            crate::pixel_format::convert_to_rgba(&mut buffer_data, pf);
+        }
         let output_id = output.id().protocol_id();
         let mut final_data = buffer_data;
         let mut final_width = width;
@@ -390,7 +392,9 @@ impl WaylandCapture {
             attempts += 1;
         }
         let mut buffer_data = mmap.to_vec();
-        convert_shm_to_rgba(&mut buffer_data, format);
+        if let Some(pf) = shm_to_pixel(format) {
+            crate::pixel_format::convert_to_rgba(&mut buffer_data, pf);
+        }
         let output_id = output.id().protocol_id();
         let (mut final_data, mut final_width, mut final_height) =
             self.apply_output_transform(buffer_data, full_width, full_height, output_id);
@@ -841,7 +845,9 @@ impl WaylandCapture {
                 state.format.unwrap_or(ShmFormat::Xrgb8888)
             };
             let mut buffer_data = mmap.to_vec();
-            convert_shm_to_rgba(&mut buffer_data, format);
+            if let Some(pf) = shm_to_pixel(format) {
+                crate::pixel_format::convert_to_rgba(&mut buffer_data, pf);
+            }
             let mut final_data = buffer_data;
             let mut final_width = width;
             let mut final_height = height;

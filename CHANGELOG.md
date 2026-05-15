@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **`ext-image-copy-capture-v1` backend**: New capture protocol supported alongside the existing `wlr-screencopy`. Auto-detection prefers `ext-image-copy-capture-v1` when available (Sway ≥ 2025, Hyprland, COSMIC), falling back to `wlr-screencopy`. New constructors: `Grim::new_ext()` and `Grim::new_wlr()` to force a specific backend. `Grim::new()` continues to work with auto-detection. Public `Backend` enum exposed: `Auto`, `ExtImageCopyCapture`, `WlrScreencopy`. See [library examples — Backend selection](doc/library_examples.md#backend-selection) for usage.
+- **`pixel_format` module**: Public pixel format conversion utilities with `PixelFormat` enum (`Argb8888`, `Xrgb8888`, `Abgr8888`, `Xbgr8888`), `fourcc_to_format()` for DRM fourcc mapping, and `convert_to_rgba()` for in-place byte swizzle. Fully tested (9 tests). No Wayland dependency — usable for any RGBA pixel processing.
 
 ### Changed
 

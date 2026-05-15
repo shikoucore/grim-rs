@@ -327,7 +327,7 @@ impl Dispatch<ZwlrScreencopyFrameV1, Arc<Mutex<FrameState>>> for WaylandCapture 
                     state.height = height;
                 }
                 if state.format.is_none() {
-                    state.format = super::drm_fourcc_to_shm_format(format);
+                    state.format = super::drm_fourcc_to_pixel(format).map(super::pixel_to_shm);
                     if state.format.is_none() {
                         log::warn!(
                             "Unknown dmabuf DRM fourcc 0x{:08x}, falling back to Xrgb8888",

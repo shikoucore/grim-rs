@@ -95,6 +95,25 @@ For full rustdoc details, see [docs.rs/grim-rs](https://docs.rs/grim-rs).
 - Utilities: `is_empty()`, `intersects(...)`, `intersection(...)`
 - Parse from string: `"x,y widthxheight"`
 
+### `pixel_format` Module
+
+Public pixel format conversion utilities, independent of Wayland types.
+
+- `PixelFormat` enum — `Argb8888`, `Xrgb8888`, `Abgr8888`, `Xbgr8888`
+- `fourcc_to_format(fourcc: u32) -> Option<PixelFormat>` — map DRM fourcc to PixelFormat
+- `convert_to_rgba(data: &mut [u8], format: PixelFormat)` — in-place byte swizzle to RGBA
+
+```rust
+use grim_rs::pixel_format::{self, PixelFormat};
+
+let mut pixels = get_raw_frame();
+pixel_format::convert_to_rgba(&mut pixels, PixelFormat::Argb8888);
+
+if let Some(fmt) = pixel_format::fourcc_to_format(0x34325241) {
+    pixel_format::convert_to_rgba(&mut pixels, fmt);
+}
+```
+
 ## Feature Flags
 
 - **`jpeg`** - Enable JPEG support (enabled by default)

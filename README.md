@@ -104,6 +104,7 @@ Use:
 At a glance:
 
 - Initialize: `Grim::new()` (auto), `Grim::new_ext()`, `Grim::new_wlr()`
+- Pixel formats: `pixel_format::PixelFormat`, `fourcc_to_format()`, `convert_to_rgba()`
 - Capture: `capture_all*`, `capture_output*`, `capture_region*`, `capture_outputs*`
 - Encode/save: `save_png*`, `save_jpeg*`, `to_png*`, `to_jpeg*`
 - Stdout/stderr helpers: `write_png_to_stdout*`, `write_jpeg_to_stdout*`
@@ -131,9 +132,10 @@ cargo doc --open
 2. **CaptureResult** - Contains screenshot data and dimensions
 3. **CaptureParameters** - Parameters for multi-output capture
 4. **Buffer** - Shared memory buffer management
-5. **Region** - Region and coordinate handling
-6. **Output** - Monitor information with transform support
-7. **Error** - Comprehensive error handling
+5. **PixelFormat** - Pixel format conversion utilities
+6. **Region** - Region and coordinate handling
+7. **Output** - Monitor information with transform support
+8. **Error** - Comprehensive error handling
 
 ### Image Processing Pipeline
 

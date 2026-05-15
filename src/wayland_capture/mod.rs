@@ -126,38 +126,28 @@ pub(super) fn lock_frame_state(
         .map_err(|e| Error::FrameCapture(format!("Frame state mutex poisoned: {}", e)))
 }
 
-/// Map a DRM fourcc format code to the equivalent `wl_shm` Format.
-pub(super) fn drm_fourcc_to_shm_format(fourcc: u32) -> Option<ShmFormat> {
-    match fourcc {
-        0x34325241 => Some(ShmFormat::Argb8888),
-        0x34325258 => Some(ShmFormat::Xrgb8888),
-        0x34324241 => Some(ShmFormat::Abgr8888),
-        0x34324258 => Some(ShmFormat::Xbgr8888),
+/// Convert a `wl_shm::Format` to our internal [`PixelFormat`].
+fn shm_to_pixel(format: ShmFormat) -> Option<crate::pixel_format::PixelFormat> {
+    match format {
+        ShmFormat::Argb8888 => Some(crate::pixel_format::PixelFormat::Argb8888),
+        ShmFormat::Xrgb8888 => Some(crate::pixel_format::PixelFormat::Xrgb8888),
+        ShmFormat::Abgr8888 => Some(crate::pixel_format::PixelFormat::Abgr8888),
+        ShmFormat::Xbgr8888 => Some(crate::pixel_format::PixelFormat::Xbgr8888),
         _ => None,
     }
 }
 
-/// `wl_shm` 32-bit frame bytes to the crate's internal RGBA layout.
-pub(super) fn convert_shm_to_rgba(buffer_data: &mut [u8], format: ShmFormat) {
+/// Map a DRM fourcc code through to [`PixelFormat`], used internally for dmabuf events.
+fn drm_fourcc_to_pixel(fourcc: u32) -> Option<crate::pixel_format::PixelFormat> {
+    crate::pixel_format::fourcc_to_format(fourcc)
+}
+
+fn pixel_to_shm(format: crate::pixel_format::PixelFormat) -> ShmFormat {
     match format {
-        ShmFormat::Xrgb8888 => {
-            for chunk in buffer_data.chunks_exact_mut(4) {
-                chunk.swap(0, 2);
-                chunk[3] = 255;
-            }
-        }
-        ShmFormat::Argb8888 => {
-            for chunk in buffer_data.chunks_exact_mut(4) {
-                chunk.swap(0, 2);
-            }
-        }
-        ShmFormat::Xbgr8888 => {
-            for chunk in buffer_data.chunks_exact_mut(4) {
-                chunk[3] = 255;
-            }
-        }
-        ShmFormat::Abgr8888 => {}
-        _ => {}
+        crate::pixel_format::PixelFormat::Argb8888 => ShmFormat::Argb8888,
+        crate::pixel_format::PixelFormat::Xrgb8888 => ShmFormat::Xrgb8888,
+        crate::pixel_format::PixelFormat::Abgr8888 => ShmFormat::Abgr8888,
+        crate::pixel_format::PixelFormat::Xbgr8888 => ShmFormat::Xbgr8888,
     }
 }
 

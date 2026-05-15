@@ -33,6 +33,7 @@
 
 pub mod error;
 pub mod geometry;
+pub mod pixel_format;
 
 mod wayland_capture;
 

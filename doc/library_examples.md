@@ -179,3 +179,19 @@ fn main() -> grim_rs::Result<()> {
     Ok(())
 }
 ```
+
+## Pixel format conversion
+
+```rust,no_run
+use grim_rs::pixel_format::{self, PixelFormat};
+
+fn process_raw_frame(mut data: Vec<u8>) -> Vec<u8> {
+    // Convert from ARGB8888 (DRM_FORMAT_ARGB8888) to RGBA
+    pixel_format::convert_to_rgba(&mut data, PixelFormat::Argb8888);
+    data
+}
+
+fn detect_format(fourcc: u32) -> Option<PixelFormat> {
+    pixel_format::fourcc_to_format(fourcc)
+}
+```
