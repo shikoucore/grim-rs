@@ -33,11 +33,12 @@
 
 pub mod error;
 pub mod geometry;
+pub mod pixel_format;
 
 mod wayland_capture;
 
 pub use error::{Error, Result};
-pub use geometry::Box;
+pub use geometry::Region;
 
 use wayland_capture::WaylandCapture as PlatformCapture;
 
@@ -88,7 +89,7 @@ pub struct Output {
     /// Name of the output (e.g., "eDP-1", "HDMI-A-1").
     name: String,
     /// Geometry of the output (position and size).
-    geometry: Box,
+    geometry: Region,
     /// Scale factor of the output (e.g., 1 for normal DPI, 2 for HiDPI).
     scale: i32,
     /// Description of the output (e.g., monitor model, manufacturer info).
@@ -100,7 +101,7 @@ impl Output {
         &self.name
     }
 
-    pub fn geometry(&self) -> &Box {
+    pub fn geometry(&self) -> &Region {
         &self.geometry
     }
 
@@ -131,7 +132,7 @@ pub struct CaptureParameters {
     /// If `Some(region)`, only the specified region will be captured.
     ///
     /// The region must be within the bounds of the output.
-    region: Option<Box>,
+    region: Option<Region>,
     /// Whether to include the cursor in the capture.
     ///
     /// If `true`, the cursor will be included in the screenshot.
@@ -160,7 +161,7 @@ impl CaptureParameters {
     }
 
     /// Sets the region to capture within the output.
-    pub fn region(mut self, region: Box) -> Self {
+    pub fn region(mut self, region: Region) -> Self {
         self.region = Some(region);
         self
     }
@@ -183,7 +184,7 @@ impl CaptureParameters {
     }
 
     /// Returns the region, if set.
-    pub fn region_ref(&self) -> Option<&Box> {
+    pub fn region_ref(&self) -> Option<&Region> {
         self.region.as_ref()
     }
 
@@ -232,6 +233,17 @@ impl MultiOutputCaptureResult {
     }
 }
 
+/// Backend protocol preference for capture initialization.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Backend {
+    /// Auto-detect: prefer `ext-image-copy-capture-v1`, fall back to `wlr-screencopy`.
+    Auto,
+    /// Force `ext-image-copy-capture-v1` (fails if not available).
+    ExtImageCopyCapture,
+    /// Force `wlr-screencopy` (fails if not available).
+    WlrScreencopy,
+}
+
 /// Main interface for taking screenshots.
 ///
 /// Provides methods for capturing screenshots of the entire screen,
@@ -241,16 +253,20 @@ pub struct Grim {
 }
 
 impl Grim {
-    /// Create a new Grim instance.
+    /// Create a new Grim instance with auto-detected backend.
     ///
     /// Establishes a connection to the Wayland compositor and initializes
-    /// the necessary protocols for screen capture.
+    /// the necessary protocols for screen capture. Prefers
+    /// `ext-image-copy-capture-v1` when available, falling back to
+    /// `wlr-screencopy`.
+    ///
+    /// Use [`Grim::new_ext`] or [`Grim::new_wlr`] to force a specific backend.
     ///
     /// # Errors
     ///
     /// Returns an error if:
     /// - Cannot connect to the Wayland compositor
-    /// - Required Wayland protocols are not available
+    /// - No capture protocol is available
     /// - Other initialization errors occur
     ///
     /// # Example
@@ -264,7 +280,63 @@ impl Grim {
     /// # }
     /// ```
     pub fn new() -> Result<Self> {
-        let platform_capture = PlatformCapture::new()?;
+        let platform_capture = PlatformCapture::new(Backend::Auto)?;
+        Ok(Self { platform_capture })
+    }
+
+    /// Create a new Grim instance forcing `ext-image-copy-capture-v1` backend.
+    ///
+    /// Fails if the compositor does not support this protocol (e.g. KDE, GNOME,
+    /// or older Sway releases). Use [`Grim::new`] for auto-detection if you need
+    /// to support multiple compositors.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::UnsupportedProtocol`] if `ext-image-copy-capture-v1`
+    /// is not available on the compositor.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use grim_rs::Grim;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// // Only works on compositors with ext-image-copy-capture-v1
+    /// // (Sway >= 2025, Hyprland, COSMIC)
+    /// let grim = Grim::new_ext()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new_ext() -> Result<Self> {
+        let platform_capture = PlatformCapture::new(Backend::ExtImageCopyCapture)?;
+        Ok(Self { platform_capture })
+    }
+
+    /// Create a new Grim instance forcing `wlr-screencopy` backend.
+    ///
+    /// Fails if the compositor does not support this protocol. Use
+    /// [`Grim::new`] for auto-detection if you need to support multiple
+    /// compositors.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::UnsupportedProtocol`] if `zwlr-screencopy-manager-v1`
+    /// is not available on the compositor.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use grim_rs::Grim;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// // Only works on compositors with wlr-screencopy
+    /// // (older Sway, River, Wayfire, Niri)
+    /// let grim = Grim::new_wlr()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new_wlr() -> Result<Self> {
+        let platform_capture = PlatformCapture::new(Backend::WlrScreencopy)?;
         Ok(Self { platform_capture })
     }
 
@@ -430,7 +502,7 @@ impl Grim {
     ///
     /// # Arguments
     ///
-    /// * `region` - The region to capture, specified as a [`Box`]
+    /// * `region` - The region to capture, specified as a [`Region`]
     ///
     /// # Errors
     ///
@@ -442,16 +514,16 @@ impl Grim {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use grim_rs::{Grim, Box};
+    /// use grim_rs::{Grim, Region};
     ///
     /// let mut grim = Grim::new()?;
     /// // x=100, y=100, width=800, height=600
-    /// let region = Box::new(100, 100, 800, 600);
+    /// let region = Region::new(100, 100, 800, 600);
     /// let result = grim.capture_region(region)?;
     /// println!("Captured region: {}x{}", result.width(), result.height());
     /// # Ok::<(), grim_rs::Error>(())
     /// ```
-    pub fn capture_region(&mut self, region: Box) -> Result<CaptureResult> {
+    pub fn capture_region(&mut self, region: Region) -> Result<CaptureResult> {
         self.platform_capture.capture_region(region)
     }
 
@@ -461,7 +533,7 @@ impl Grim {
     ///
     /// # Arguments
     ///
-    /// * `region` - The region to capture, specified as a [`Box`]
+    /// * `region` - The region to capture, specified as a [`Region`]
     /// * `scale` - Scale factor for the output image
     ///
     /// # Errors
@@ -474,16 +546,20 @@ impl Grim {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use grim_rs::{Grim, Box};
+    /// use grim_rs::{Grim, Region};
     ///
     /// let mut grim = Grim::new()?;
     /// // x=100, y=100, width=800, height=600
-    /// let region = Box::new(100, 100, 800, 600);
+    /// let region = Region::new(100, 100, 800, 600);
     /// let result = grim.capture_region_with_scale(region, 1.0)?;
     /// println!("Captured region: {}x{}", result.width(), result.height());
     /// # Ok::<(), grim_rs::Error>(())
     /// ```
-    pub fn capture_region_with_scale(&mut self, region: Box, scale: f64) -> Result<CaptureResult> {
+    pub fn capture_region_with_scale(
+        &mut self,
+        region: Region,
+        scale: f64,
+    ) -> Result<CaptureResult> {
         self.platform_capture
             .capture_region_with_scale(region, scale)
     }
@@ -509,7 +585,7 @@ impl Grim {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use grim_rs::{Grim, CaptureParameters, Box};
+    /// use grim_rs::{Grim, CaptureParameters, Region};
     ///
     /// let mut grim = Grim::new()?;
     ///
@@ -524,7 +600,7 @@ impl Grim {
     ///
     /// // If we have a second output, capture a region of it
     /// if outputs.len() > 1 {
-    ///     let region = Box::new(0, 0, 400, 300);
+    ///     let region = Region::new(0, 0, 400, 300);
     ///     parameters.push(
     ///         CaptureParameters::new(outputs[1].name())
     ///             .region(region)
@@ -1211,7 +1287,7 @@ impl Grim {
     ///
     /// # Returns
     ///
-    /// Returns a `Box` representing the region read from stdin.
+    /// Returns a `Region` representing the region read from stdin.
     ///
     /// # Errors
     ///
@@ -1222,14 +1298,14 @@ impl Grim {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use grim_rs::{Grim, Box};
+    /// use grim_rs::{Grim, Region};
     ///
     /// // Parse region from string (same format as stdin would provide)
-    /// let region = "100,100 800x600".parse::<Box>()?;
+    /// let region = "100,100 800x600".parse::<Region>()?;
     /// println!("Region: {}", region);
     /// # Ok::<(), grim_rs::Error>(())
     /// ```
-    pub fn read_region_from_stdin() -> Result<Box> {
+    pub fn read_region_from_stdin() -> Result<Region> {
         use std::io::{self, BufRead};
 
         let stdin = io::stdin();

@@ -1,3 +1,56 @@
+# Migration Guide: 0.1.8 → 0.1.9
+
+This guide helps you upgrade from grim-rs version 0.1.8 to 0.1.9.
+
+Version 0.1.9 **renames `Box` to `Region`** to avoid name collision with `std::boxed::Box`.
+
+---
+
+## Renamed: `Box` → `Region`
+
+The `Box` struct has been renamed to `Region`. This is a **breaking change** — the old name is no longer available.
+
+### Why
+
+`use grim_rs::Box` conflicts with `std::boxed::Box`, forcing every user to write `use grim_rs::Box as GrimBox`. The new name `Region` better describes what the type represents (a rectangular region with position and size) and eliminates the collision.
+
+### Migration
+
+**Before (0.1.8):**
+```rust
+use grim_rs::Box;
+
+let region = Box::new(100, 200, 800, 600);
+let parsed: Box = "0,0 1920x1080".parse().unwrap();
+```
+
+**After (0.1.9):**
+```rust
+use grim_rs::Region;
+
+let region = Region::new(100, 200, 800, 600);
+let parsed: Region = "0,0 1920x1080".parse().unwrap();
+```
+
+### Automated migration
+
+```bash
+# Replace in your project (from grim-rs 0.1.8 to 0.1.9)
+find . -name '*.rs' -exec sed -i 's/\bBox\b/Region/g; s/\bRegion<dyn\b/Box<dyn/g' {} +
+```
+
+The second substitution preserves `Box<dyn Error>` and other `Box<dyn ...>` usages.
+
+### Full type path
+
+If you use the full path:
+```diff
+- use grim_rs::geometry::Box;
++ use grim_rs::geometry::Region;
+```
+
+---
+
 # Migration Guide: 0.1.7 → 0.1.8
 
 This guide helps you upgrade from grim-rs version 0.1.7 to 0.1.8.

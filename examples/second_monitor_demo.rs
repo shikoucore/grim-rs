@@ -1,5 +1,5 @@
 use chrono::Local;
-use grim_rs::{Box, Grim, Result};
+use grim_rs::{Grim, Region, Result};
 
 fn generate_filename(description: &str, extension: &str) -> String {
     let now = Local::now();
@@ -104,7 +104,7 @@ fn main() -> Result<()> {
     let geom = second_output.geometry();
 
     println!("- Top-left corner (400x300)...");
-    let region = Box::new(
+    let region = Region::new(
         geom.x(),
         geom.y(),
         (400).min(geom.width()),
@@ -119,7 +119,7 @@ fn main() -> Result<()> {
     println!("- Center region (800x600)...");
     let center_width = (800).min(geom.width());
     let center_height = (600).min(geom.height());
-    let region = Box::new(
+    let region = Region::new(
         geom.x() + (geom.width() - center_width) / 2,
         geom.y() + (geom.height() - center_height) / 2,
         center_width,
@@ -134,7 +134,7 @@ fn main() -> Result<()> {
     println!("- Bottom-right corner (400x300)...");
     let corner_width = (400).min(geom.width());
     let corner_height = (300).min(geom.height());
-    let region = Box::new(
+    let region = Region::new(
         geom.x() + geom.width() - corner_width,
         geom.y() + geom.height() - corner_height,
         corner_width,
@@ -183,7 +183,7 @@ fn main() -> Result<()> {
     println!("- Center region at 0.75x scale...");
     let center_width = (800).min(geom.width());
     let center_height = (600).min(geom.height());
-    let region = Box::new(
+    let region = Region::new(
         geom.x() + (geom.width() - center_width) / 2,
         geom.y() + (geom.height() - center_height) / 2,
         center_width,
@@ -196,7 +196,7 @@ fn main() -> Result<()> {
     println!("Saved: {}\n", filename);
     println!("Capturing horizontal strip from second monitor...");
     let strip_height = (200).min(geom.height());
-    let region = Box::new(
+    let region = Region::new(
         geom.x(),
         geom.y() + (geom.height() - strip_height) / 2,
         geom.width(),
@@ -209,7 +209,7 @@ fn main() -> Result<()> {
     println!("Saved: {}\n", filename);
     println!("Capturing vertical strip from second monitor...");
     let strip_width = (200).min(geom.width());
-    let region = Box::new(
+    let region = Region::new(
         geom.x() + (geom.width() - strip_width) / 2,
         geom.y(),
         strip_width,
@@ -239,7 +239,7 @@ fn main() -> Result<()> {
 
     for row in 0..grid_size {
         for col in 0..grid_size {
-            let region = Box::new(
+            let region = Region::new(
                 geom.x() + col * cell_width,
                 geom.y() + row * cell_height,
                 cell_width,

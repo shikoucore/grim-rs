@@ -1,13 +1,13 @@
 /// Tests for grid-aligned compositing optimization
 /// These tests verify the detection logic for grid-aligned layouts,
 /// which allows for optimized SRC-mode compositing instead of slower OVER mode.
-use grim_rs::Box;
+use grim_rs::Region;
 
 #[test]
 fn test_box_no_overlap() {
     // Two boxes side by side (no overlap) - grid-aligned
-    let box1 = Box::new(0, 0, 100, 100);
-    let box2 = Box::new(100, 0, 100, 100);
+    let box1 = Region::new(0, 0, 100, 100);
+    let box2 = Region::new(100, 0, 100, 100);
 
     assert!(
         !box1.intersects(&box2),
@@ -18,8 +18,8 @@ fn test_box_no_overlap() {
 #[test]
 fn test_box_with_overlap() {
     // Two boxes with overlap - NOT grid-aligned
-    let box1 = Box::new(0, 0, 100, 100);
-    let box2 = Box::new(50, 50, 100, 100);
+    let box1 = Region::new(0, 0, 100, 100);
+    let box2 = Region::new(50, 50, 100, 100);
 
     assert!(box1.intersects(&box2), "Overlapping boxes should intersect");
 
@@ -33,8 +33,8 @@ fn test_box_with_overlap() {
 #[test]
 fn test_grid_aligned_horizontal_layout() {
     // Two monitors side by side horizontally: [1920x1080] [1920x1080]
-    let box1 = Box::new(0, 0, 1920, 1080);
-    let box2 = Box::new(1920, 0, 1920, 1080);
+    let box1 = Region::new(0, 0, 1920, 1080);
+    let box2 = Region::new(1920, 0, 1920, 1080);
 
     assert!(
         !box1.intersects(&box2),
@@ -45,8 +45,8 @@ fn test_grid_aligned_horizontal_layout() {
 #[test]
 fn test_grid_aligned_vertical_layout() {
     // Two monitors stacked vertically
-    let box1 = Box::new(0, 0, 1920, 1080);
-    let box2 = Box::new(0, 1080, 1920, 1080);
+    let box1 = Region::new(0, 0, 1920, 1080);
+    let box2 = Region::new(0, 1080, 1920, 1080);
 
     assert!(
         !box1.intersects(&box2),
@@ -59,9 +59,9 @@ fn test_grid_aligned_l_shape_layout() {
     // L-shaped layout (common in multi-monitor setups)
     // [1920x1080]
     // [1920x1080][1920x1080]
-    let box1 = Box::new(0, 0, 1920, 1080); // Top
-    let box2 = Box::new(0, 1080, 1920, 1080); // Bottom-left
-    let box3 = Box::new(1920, 1080, 1920, 1080); // Bottom-right
+    let box1 = Region::new(0, 0, 1920, 1080); // Top
+    let box2 = Region::new(0, 1080, 1920, 1080); // Bottom-left
+    let box3 = Region::new(1920, 1080, 1920, 1080); // Bottom-right
 
     assert!(
         !box1.intersects(&box2),
@@ -79,8 +79,8 @@ fn test_grid_aligned_l_shape_layout() {
 
 #[test]
 fn test_non_grid_aligned_overlapping_monitors() {
-    let box1 = Box::new(0, 0, 1920, 1080);
-    let box2 = Box::new(1800, 0, 1920, 1080); // 120px overlap
+    let box1 = Region::new(0, 0, 1920, 1080);
+    let box2 = Region::new(1800, 0, 1920, 1080); // 120px overlap
 
     assert!(
         box1.intersects(&box2),
@@ -90,9 +90,9 @@ fn test_non_grid_aligned_overlapping_monitors() {
 
 #[test]
 fn test_grid_aligned_triple_monitor() {
-    let box_a = Box::new(0, 0, 1920, 1080);
-    let box_b = Box::new(1920, 0, 1920, 1080);
-    let box_c = Box::new(3840, 0, 1920, 1080);
+    let box_a = Region::new(0, 0, 1920, 1080);
+    let box_b = Region::new(1920, 0, 1920, 1080);
+    let box_c = Region::new(3840, 0, 1920, 1080);
 
     assert!(
         !box_a.intersects(&box_b),
@@ -112,8 +112,8 @@ fn test_grid_aligned_triple_monitor() {
 fn test_grid_aligned_different_sizes() {
     // Different size monitors but still grid-aligned
     // [2560x1440] [1920x1080]
-    let box1 = Box::new(0, 0, 2560, 1440);
-    let box2 = Box::new(2560, 0, 1920, 1080);
+    let box1 = Region::new(0, 0, 2560, 1440);
+    let box2 = Region::new(2560, 0, 1920, 1080);
 
     assert!(
         !box1.intersects(&box2),
@@ -123,8 +123,8 @@ fn test_grid_aligned_different_sizes() {
 
 #[test]
 fn test_region_intersection_within_output() {
-    let output = Box::new(0, 0, 1920, 1080);
-    let region = Box::new(100, 100, 800, 600);
+    let output = Region::new(0, 0, 1920, 1080);
+    let region = Region::new(100, 100, 800, 600);
 
     assert!(output.intersects(&region), "Region should be within output");
 
@@ -134,9 +134,9 @@ fn test_region_intersection_within_output() {
 
 #[test]
 fn test_region_spanning_multiple_outputs() {
-    let output1 = Box::new(0, 0, 1920, 1080);
-    let output2 = Box::new(1920, 0, 1920, 1080);
-    let region = Box::new(1800, 400, 240, 280);
+    let output1 = Region::new(0, 0, 1920, 1080);
+    let output2 = Region::new(1920, 0, 1920, 1080);
+    let region = Region::new(1800, 400, 240, 280);
 
     assert!(
         output1.intersects(&region),
@@ -161,8 +161,8 @@ fn test_region_spanning_multiple_outputs() {
 
 #[test]
 fn test_pixel_alignment_check() {
-    let box1 = Box::new(0, 0, 1920, 1080);
-    let box2 = Box::new(1920, 0, 1920, 1080);
+    let box1 = Region::new(0, 0, 1920, 1080);
+    let box2 = Region::new(1920, 0, 1920, 1080);
 
     assert_eq!(box1.x() + box1.width(), 1920);
     assert_eq!(box2.x(), 1920);
@@ -172,8 +172,8 @@ fn test_pixel_alignment_check() {
 
 #[test]
 fn test_empty_box_no_intersection() {
-    let box1 = Box::new(0, 0, 100, 100);
-    let box2 = Box::new(0, 0, 0, 0); // Empty box
+    let box1 = Region::new(0, 0, 100, 100);
+    let box2 = Region::new(0, 0, 0, 0); // Empty box
 
     assert!(!box1.intersects(&box2), "Empty box should not intersect");
     assert!(box2.is_empty(), "Box with zero dimensions should be empty");

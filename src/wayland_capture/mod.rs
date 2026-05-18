@@ -1,5 +1,5 @@
 pub(super) use crate::{
-    Box, CaptureParameters, CaptureResult, Error, MultiOutputCaptureResult, Output, Result,
+    CaptureParameters, CaptureResult, Error, MultiOutputCaptureResult, Output, Region, Result,
 };
 pub(super) use std::collections::HashMap;
 pub(super) use std::os::fd::{AsRawFd, BorrowedFd};
@@ -23,6 +23,16 @@ pub(super) use wayland_protocols_wlr::screencopy::v1::client::{
     zwlr_screencopy_manager_v1::ZwlrScreencopyManagerV1,
 };
 
+pub(super) use wayland_protocols::ext::image_capture_source::v1::client::{
+    ext_image_capture_source_v1::ExtImageCaptureSourceV1,
+    ext_output_image_capture_source_manager_v1::ExtOutputImageCaptureSourceManagerV1,
+};
+pub(super) use wayland_protocols::ext::image_copy_capture::v1::client::{
+    ext_image_copy_capture_frame_v1::ExtImageCopyCaptureFrameV1,
+    ext_image_copy_capture_manager_v1::ExtImageCopyCaptureManagerV1,
+    ext_image_copy_capture_session_v1::ExtImageCopyCaptureSessionV1,
+};
+
 mod capture;
 mod scaling;
 mod transform;
@@ -31,18 +41,19 @@ mod wayland_events;
 pub(super) const ZWLR_SCREENCOPY_FRAME_V1_FLAGS_Y_INVERT: u32 = 1;
 pub(super) const MAX_ATTEMPTS: usize = 100;
 
-/// Global upper bound for pixel count used by `checked_buffer_size()`.
-///
-/// This limit is enforced for all image/buffer allocations that are derived
-/// from width/height in this module, including:
-/// - `capture_region_for_output()` (Wayland buffer allocation via stride×height)
-/// - `capture_outputs()` (per-output buffer allocation)
-/// - `composite_region()` (final composited image buffer)
-/// - `scale_image_data()` and `scale_image_integer_fast()` (scaled image buffers)
-/// - `ZwlrScreencopyFrameV1::Buffer` event handling (frame buffer placeholder)
-///
-/// The goal is to prevent integer overflows and avoid OOM from extreme sizes.
 pub(super) const MAX_PIXELS: u64 = 134_217_728;
+
+/// Captures which capture protocol is in use and holds its specific manager objects.
+#[derive(Clone)]
+pub(super) enum CaptureBackend {
+    WlrScreencopy {
+        manager: ZwlrScreencopyManagerV1,
+    },
+    ExtImageCopyCapture {
+        source_manager: ExtOutputImageCaptureSourceManagerV1,
+        copy_manager: ExtImageCopyCaptureManagerV1,
+    },
+}
 
 #[derive(Debug, Clone)]
 pub(super) struct FrameState {
@@ -52,6 +63,8 @@ pub(super) struct FrameState {
     format: Option<ShmFormat>,
     ready: bool,
     flags: u32,
+    linux_dmabuf_received: bool,
+    constraints_done: bool,
 }
 
 /// Compute a safe buffer size in bytes for image-like data.
@@ -105,8 +118,6 @@ pub(super) fn checked_buffer_size(
 }
 
 /// Safely lock a FrameState mutex, converting poisoned mutex errors to Result.
-///
-/// This helper function provides proper error handling for mutex locks instead of panicking.
 pub(super) fn lock_frame_state(
     frame_state: &Arc<Mutex<FrameState>>,
 ) -> Result<std::sync::MutexGuard<'_, FrameState>> {
@@ -115,44 +126,28 @@ pub(super) fn lock_frame_state(
         .map_err(|e| Error::FrameCapture(format!("Frame state mutex poisoned: {}", e)))
 }
 
-/// `wl_shm` 32-bit frame bytes to the crate's internal RGBA layout.
-///
-/// Why this exists:
-/// - `CaptureResult` data is exposed as RGBA.
-/// - `wl_shm` formats (`Xrgb8888`, `Argb8888`, etc.) are word-defined and on
-///   little-endian systems their byte order in memory is not always RGBA.
-///
-/// Where this is used:
-/// - `capture_region_for_output()` after reading the mmap buffer.
-/// - `capture_outputs()` for each captured output buffer.
-///
-/// Notes:
-/// - Conversion is done in-place (no extra allocation).
-/// - Unsupported formats are left unchanged.
-pub(super) fn convert_shm_to_rgba(buffer_data: &mut [u8], format: ShmFormat) {
+/// Convert a `wl_shm::Format` to our internal [`PixelFormat`].
+fn shm_to_pixel(format: ShmFormat) -> Option<crate::pixel_format::PixelFormat> {
     match format {
-        // x:R:G:B -> bytes in memory are B,G,R,x on little-endian.
-        ShmFormat::Xrgb8888 => {
-            for chunk in buffer_data.chunks_exact_mut(4) {
-                chunk.swap(0, 2);
-                chunk[3] = 255;
-            }
-        }
-        // A:R:G:B -> bytes in memory are B,G,R,A on little-endian.
-        ShmFormat::Argb8888 => {
-            for chunk in buffer_data.chunks_exact_mut(4) {
-                chunk.swap(0, 2);
-            }
-        }
-        // x:B:G:R -> bytes in memory are R,G,B,x on little-endian.
-        ShmFormat::Xbgr8888 => {
-            for chunk in buffer_data.chunks_exact_mut(4) {
-                chunk[3] = 255;
-            }
-        }
-        // A:B:G:R -> bytes in memory are R,G,B,A on little-endian.
-        ShmFormat::Abgr8888 => {}
-        _ => {}
+        ShmFormat::Argb8888 => Some(crate::pixel_format::PixelFormat::Argb8888),
+        ShmFormat::Xrgb8888 => Some(crate::pixel_format::PixelFormat::Xrgb8888),
+        ShmFormat::Abgr8888 => Some(crate::pixel_format::PixelFormat::Abgr8888),
+        ShmFormat::Xbgr8888 => Some(crate::pixel_format::PixelFormat::Xbgr8888),
+        _ => None,
+    }
+}
+
+/// Map a DRM fourcc code through to [`PixelFormat`], used internally for dmabuf events.
+fn drm_fourcc_to_pixel(fourcc: u32) -> Option<crate::pixel_format::PixelFormat> {
+    crate::pixel_format::fourcc_to_format(fourcc)
+}
+
+fn pixel_to_shm(format: crate::pixel_format::PixelFormat) -> ShmFormat {
+    match format {
+        crate::pixel_format::PixelFormat::Argb8888 => ShmFormat::Argb8888,
+        crate::pixel_format::PixelFormat::Xrgb8888 => ShmFormat::Xrgb8888,
+        crate::pixel_format::PixelFormat::Abgr8888 => ShmFormat::Abgr8888,
+        crate::pixel_format::PixelFormat::Xbgr8888 => ShmFormat::Xbgr8888,
     }
 }
 
@@ -173,17 +168,11 @@ pub(super) fn guess_output_logical_geometry(info: &mut OutputInfo) {
 }
 
 /// Infer a (possibly fractional) logical scale.
-///
-/// Some compositors report a logical size that does not match the integer `wl_output.scale`.
-/// To match grim's behavior, we derive the effective scale from the physical mode size and the
-/// logical size (taking output transform into account).
 pub(super) fn update_logical_scale(info: &mut OutputInfo) {
     if info.width <= 0 || info.height <= 0 || info.logical_width <= 0 || info.logical_height <= 0 {
         return;
     }
 
-    // Match grim's behavior: infer a (possibly fractional) logical scale from the output's
-    // physical mode size and the xdg-output logical size.
     let mut physical_width = info.width;
     let mut physical_height = info.height;
     transform::apply_output_transform(info.transform, &mut physical_width, &mut physical_height);
@@ -228,26 +217,28 @@ pub(super) fn blit_capture(
 
 #[derive(Clone)]
 pub(super) struct OutputInfo {
-    name: String,
-    width: i32,
-    height: i32,
-    x: i32,
-    y: i32,
-    scale: i32,
-    transform: wayland_client::protocol::wl_output::Transform,
-    logical_x: i32,
-    logical_y: i32,
-    logical_width: i32,
-    logical_height: i32,
-    logical_scale_known: bool,
-    logical_scale: f64,
-    description: Option<String>,
+    pub(super) name: String,
+    pub(super) width: i32,
+    pub(super) height: i32,
+    pub(super) x: i32,
+    pub(super) y: i32,
+    pub(super) scale: i32,
+    pub(super) transform: wayland_client::protocol::wl_output::Transform,
+    pub(super) logical_x: i32,
+    pub(super) logical_y: i32,
+    pub(super) logical_width: i32,
+    pub(super) logical_height: i32,
+    pub(super) logical_scale_known: bool,
+    pub(super) logical_scale: f64,
+    pub(super) description: Option<String>,
 }
 
 pub(super) struct WaylandGlobals {
     compositor: Option<WlCompositor>,
     shm: Option<WlShm>,
     screencopy_manager: Option<ZwlrScreencopyManagerV1>,
+    ext_source_manager: Option<ExtOutputImageCaptureSourceManagerV1>,
+    ext_copy_manager: Option<ExtImageCopyCaptureManagerV1>,
     xdg_output_manager: Option<ZxdgOutputManagerV1>,
     outputs: Vec<WlOutput>,
     output_info: HashMap<u32, OutputInfo>,
@@ -257,10 +248,21 @@ pub(super) struct WaylandGlobals {
 pub struct WaylandCapture {
     _connection: Connection,
     globals: WaylandGlobals,
+    backend: Option<CaptureBackend>,
 }
 
 impl WaylandCapture {
-    pub fn new() -> Result<Self> {
+    fn try_backend(&self) -> Result<&CaptureBackend> {
+        self.backend.as_ref().ok_or_else(|| {
+            Error::WaylandConnection("WaylandCapture backend not initialized".to_string())
+        })
+    }
+
+    fn backend_cloned(&self) -> Result<CaptureBackend> {
+        Ok(self.try_backend()?.clone())
+    }
+
+    pub fn new(preference: crate::Backend) -> Result<Self> {
         let connection = Connection::connect_to_env().map_err(|e| {
             Error::WaylandConnection(format!("Failed to connect to Wayland: {}", e))
         })?;
@@ -268,31 +270,92 @@ impl WaylandCapture {
             compositor: None,
             shm: None,
             screencopy_manager: None,
+            ext_source_manager: None,
+            ext_copy_manager: None,
             xdg_output_manager: None,
             outputs: Vec::new(),
             output_info: HashMap::new(),
             output_xdg_map: HashMap::new(),
         };
+
         let mut event_queue = connection.new_event_queue();
         let qh = event_queue.handle();
         let _registry = connection.display().get_registry(&qh, ());
         let mut instance = Self {
             _connection: connection,
             globals,
+            backend: None,
         };
         event_queue.roundtrip(&mut instance).map_err(|e| {
             Error::WaylandConnection(format!("Failed to initialize Wayland globals: {}", e))
         })?;
-        if instance.globals.screencopy_manager.is_none() {
-            return Err(Error::UnsupportedProtocol(
-                "zwlr_screencopy_manager_v1 not available".to_string(),
-            ));
-        }
+
+        let backend = match preference {
+            crate::Backend::ExtImageCopyCapture => {
+                let source_manager =
+                    instance.globals.ext_source_manager.take().ok_or_else(|| {
+                        Error::UnsupportedProtocol(
+                            "ext-image-copy-capture-v1 not available".to_string(),
+                        )
+                    })?;
+                let copy_manager = instance.globals.ext_copy_manager.take().ok_or_else(|| {
+                    Error::UnsupportedProtocol(
+                        "ext-image-copy-capture-v1 not available".to_string(),
+                    )
+                })?;
+                CaptureBackend::ExtImageCopyCapture {
+                    source_manager,
+                    copy_manager,
+                }
+            }
+            crate::Backend::WlrScreencopy => {
+                let mgr = instance.globals.screencopy_manager.take().ok_or_else(|| {
+                    Error::UnsupportedProtocol(
+                        "zwlr-screencopy-manager-v1 not available".to_string(),
+                    )
+                })?;
+                CaptureBackend::WlrScreencopy { manager: mgr }
+            }
+            crate::Backend::Auto => {
+                // Prefer ext-image-copy-capture, fall back to wlr-screencopy
+                match (
+                    instance.globals.ext_source_manager.take(),
+                    instance.globals.ext_copy_manager.take(),
+                ) {
+                    (Some(source_manager), Some(copy_manager)) => {
+                        CaptureBackend::ExtImageCopyCapture {
+                            source_manager,
+                            copy_manager,
+                        }
+                    }
+                    _ => {
+                        let manager =
+                            instance.globals.screencopy_manager.take().ok_or_else(|| {
+                                Error::UnsupportedProtocol(
+                                    "No capture protocol available (tried \
+                                     ext-image-copy-capture-v1 and \
+                                     zwlr-screencopy-manager-v1)"
+                                        .to_string(),
+                                )
+                            })?;
+                        CaptureBackend::WlrScreencopy { manager }
+                    }
+                }
+            }
+        };
+
         if instance.globals.shm.is_none() {
             return Err(Error::UnsupportedProtocol(
                 "wl_shm not available".to_string(),
             ));
         }
+
+        let backend_label = match &backend {
+            CaptureBackend::WlrScreencopy { .. } => "wlr-screencopy",
+            CaptureBackend::ExtImageCopyCapture { .. } => "ext-image-copy-capture-v1",
+        };
+        log::info!("grim-rs: using {} backend", backend_label);
+        instance.backend = Some(backend);
         Ok(instance)
     }
 }

@@ -1,5 +1,5 @@
 use dhat::{Alloc, Profiler};
-use grim_rs::{Box as GrimBox, CaptureParameters, Grim};
+use grim_rs::{CaptureParameters, Grim, Region};
 use std::env;
 use std::fs;
 use std::process::Command;
@@ -127,7 +127,7 @@ fn run_case(kind: &str, width: u32, height: u32, out_file: &str) -> grim_rs::Res
                 None => return Ok(()),
             };
             let geom = first.geometry();
-            let region = GrimBox::new(
+            let region = Region::new(
                 geom.x() + geom.width() / 4,
                 geom.y() + geom.height() / 4,
                 (geom.width() / 2).max(1),
@@ -143,7 +143,7 @@ fn run_case(kind: &str, width: u32, height: u32, out_file: &str) -> grim_rs::Res
                 None => return Ok(()),
             };
             let geom = first.geometry();
-            let region = GrimBox::new(
+            let region = Region::new(
                 geom.x() + geom.width() / 4,
                 geom.y() + geom.height() / 4,
                 (geom.width() / 2).max(1),
