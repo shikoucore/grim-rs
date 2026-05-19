@@ -3,14 +3,7 @@
 [![Crates.io Version](https://img.shields.io/crates/v/grim-rs.svg)](https://crates.io/crates/grim-rs)
 
 > [!IMPORTANT]
-
-[`CHANGELOG`](CHANGELOG.md)
-
-[`API`](doc/api.md)
-
-[`MIGRATION`](MIGRATION.md)
-
-[`Examples`](doc/library_examples.md)
+> [`CHANGELOG`](CHANGELOG.md) · [`API`](doc/api.md) · [`MIGRATION`](MIGRATION.md) · [`Examples`](doc/library_examples.md)
 
 > if you like this project, then the best way to express gratitude is to give it a star ⭐, it doesn't cost you anything, but I understand that I'm moving the project in the right direction.
 ___
@@ -48,7 +41,7 @@ Or add manually to `Cargo.toml`:
 
 ```toml
 [dependencies]
-grim-rs = "0.1"
+grim-rs = "0.2"
 ```
 
 **MSRV:** Rust 1.68+
