@@ -2,6 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 use grim_rs::Grim;
 #[cfg(unix)]
 use std::ffi::CString;
+#[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
 use std::path::PathBuf;
 
