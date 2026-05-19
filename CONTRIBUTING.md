@@ -5,9 +5,9 @@ how we work and what is required for contributions to be accepted.
 
 ## Project Scope
 
-- grim-rs targets Wayland compositors that support `ext-image-copy-capture-v1` or `zwlr_screencopy_manager_v1`.
+- grim-rs targets Wayland compositors (Linux) that support `ext-image-copy-capture-v1` or `zwlr_screencopy_manager_v1`, and Windows via DXGI Desktop Duplication.
 - The library is Rust-first and aims for a clean public API with minimal
-  dependencies and predictable behavior.
+  dependencies and predictable behavior across platforms.
 
 ## Quick Start
 
@@ -18,7 +18,8 @@ how we work and what is required for contributions to be accepted.
 
 ## Development Environment
 
-- Development and profiling require a running Wayland session.
+- **Linux**: Development and profiling require a running Wayland session.
+- **Windows**: Development and testing require a Windows desktop session with a GPU supporting DXGI 1.1+.
 
 ## Non-Negotiable Rules
 

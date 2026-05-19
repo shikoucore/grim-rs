@@ -12,19 +12,13 @@ fn generate_filename(description: &str, extension: &str) -> String {
 }
 
 fn main() -> Result<()> {
-    println!("Second Monitor Screenshot Demo\n");
-
     let mut grim = Grim::new()?;
-
-    println!("Detecting available outputs...");
     let outputs = grim.get_outputs()?;
     println!("Found {} output(s)\n", outputs.len());
-
     if outputs.is_empty() {
         eprintln!("Error: No outputs found!");
         return Ok(());
     }
-
     for (i, output) in outputs.iter().enumerate() {
         println!("Output #{}: {}", i + 1, output.name());
         println!(
@@ -43,13 +37,11 @@ fn main() -> Result<()> {
         }
         println!();
     }
-
     if outputs.len() < 2 {
         eprintln!("Error: Second monitor not found!");
         eprintln!("This demo requires at least 2 monitors.");
         return Ok(());
     }
-
     let second_output = &outputs[1];
     println!("Using second monitor: {}", second_output.name());
     println!(
@@ -57,17 +49,11 @@ fn main() -> Result<()> {
         second_output.geometry().width(),
         second_output.geometry().height()
     );
-
-    println!("Capturing full second monitor...");
     let result = grim.capture_output(second_output.name())?;
     println!("Captured: {}x{} pixels", result.width(), result.height());
     let filename = generate_filename("full", "png");
     grim.save_png(result.data(), result.width(), result.height(), &filename)?;
     println!("Saved: {}\n", filename);
-
-    println!("Capturing second monitor with different scales...");
-
-    println!("- At 0.5x scale...");
     let result_half = grim.capture_output_with_scale(second_output.name(), 0.5)?;
     println!(
         "Captured: {}x{} pixels",
@@ -82,8 +68,6 @@ fn main() -> Result<()> {
         &filename,
     )?;
     println!("Saved: {}\n", filename);
-
-    println!("- At 0.25x scale...");
     let result_quarter = grim.capture_output_with_scale(second_output.name(), 0.25)?;
     println!(
         "Captured: {}x{} pixels",
@@ -98,12 +82,7 @@ fn main() -> Result<()> {
         &filename,
     )?;
     println!("Saved: {}\n", filename);
-
-    println!("Capturing regions of second monitor...");
-
     let geom = second_output.geometry();
-
-    println!("- Top-left corner (400x300)...");
     let region = Region::new(
         geom.x(),
         geom.y(),
@@ -115,8 +94,6 @@ fn main() -> Result<()> {
     let filename = generate_filename("top_left", "png");
     grim.save_png(result.data(), result.width(), result.height(), &filename)?;
     println!("Saved: {}\n", filename);
-
-    println!("- Center region (800x600)...");
     let center_width = (800).min(geom.width());
     let center_height = (600).min(geom.height());
     let region = Region::new(
@@ -130,8 +107,6 @@ fn main() -> Result<()> {
     let filename = generate_filename("center", "png");
     grim.save_png(result.data(), result.width(), result.height(), &filename)?;
     println!("Saved: {}\n", filename);
-
-    println!("- Bottom-right corner (400x300)...");
     let corner_width = (400).min(geom.width());
     let corner_height = (300).min(geom.height());
     let region = Region::new(
@@ -145,27 +120,20 @@ fn main() -> Result<()> {
     let filename = generate_filename("bottom_right", "png");
     grim.save_png(result.data(), result.width(), result.height(), &filename)?;
     println!("Saved: {}\n", filename);
-
-    println!("Saving second monitor in different formats...");
     let result = grim.capture_output(second_output.name())?;
-
     println!("- PNG (default compression)...");
     let filename = generate_filename("format", "png");
     grim.save_png(result.data(), result.width(), result.height(), &filename)?;
     println!("Saved: {}", filename);
-
-    println!("- PNG (best compression)...");
     let filename = generate_filename("format_best_comp", "png");
     grim.save_png_with_compression(result.data(), result.width(), result.height(), &filename, 9)?;
     println!("Saved: {}", filename);
-
     #[cfg(feature = "jpeg")]
     {
         println!("- JPEG (default quality)...");
         let filename = generate_filename("format", "jpg");
         grim.save_jpeg(result.data(), result.width(), result.height(), &filename)?;
         println!("Saved: {}", filename);
-
         println!("- JPEG (quality 95)...");
         let filename = generate_filename("format_q95", "jpg");
         grim.save_jpeg_with_quality(
@@ -177,10 +145,6 @@ fn main() -> Result<()> {
         )?;
         println!("Saved: {}", filename);
     }
-
-    println!("Capturing scaled regions...");
-
-    println!("- Center region at 0.75x scale...");
     let center_width = (800).min(geom.width());
     let center_height = (600).min(geom.height());
     let region = Region::new(
@@ -194,7 +158,6 @@ fn main() -> Result<()> {
     let filename = generate_filename("center_scaled", "png");
     grim.save_png(result.data(), result.width(), result.height(), &filename)?;
     println!("Saved: {}\n", filename);
-    println!("Capturing horizontal strip from second monitor...");
     let strip_height = (200).min(geom.height());
     let region = Region::new(
         geom.x(),
@@ -207,7 +170,6 @@ fn main() -> Result<()> {
     let filename = generate_filename("horizontal_strip", "png");
     grim.save_png(result.data(), result.width(), result.height(), &filename)?;
     println!("Saved: {}\n", filename);
-    println!("Capturing vertical strip from second monitor...");
     let strip_width = (200).min(geom.width());
     let region = Region::new(
         geom.x() + (geom.width() - strip_width) / 2,
@@ -220,23 +182,17 @@ fn main() -> Result<()> {
     let filename = generate_filename("vertical_strip", "png");
     grim.save_png(result.data(), result.width(), result.height(), &filename)?;
     println!("Saved: {}\n", filename);
-    println!("Converting to different formats in memory...");
     let result = grim.capture_output(second_output.name())?;
-
     let png_bytes = grim.to_png(result.data(), result.width(), result.height())?;
     println!("PNG bytes: {} bytes", png_bytes.len());
-
     #[cfg(feature = "jpeg")]
     {
         let jpeg_bytes = grim.to_jpeg(result.data(), result.width(), result.height())?;
         println!("JPEG bytes: {} bytes", jpeg_bytes.len());
     }
-
-    println!("Creating grid of small captures (4x4)...");
     let grid_size = 4;
     let cell_width = geom.width() / grid_size;
     let cell_height = geom.height() / grid_size;
-
     for row in 0..grid_size {
         for col in 0..grid_size {
             let region = Region::new(

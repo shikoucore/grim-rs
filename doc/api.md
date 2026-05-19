@@ -9,10 +9,10 @@ For full rustdoc details, see [docs.rs/grim-rs](https://docs.rs/grim-rs).
 
 ### Initialization
 
-- `Grim::new()` - Create new Grim instance with auto-detected backend (prefers `ext-image-copy-capture-v1`, falls back to `wlr-screencopy`)
-- `Grim::new_ext()` - Force `ext-image-copy-capture-v1` backend (fails if compositor doesn't support it)
-- `Grim::new_wlr()` - Force `wlr-screencopy` backend (fails if compositor doesn't support it)
-- `Backend` enum — `Auto`, `ExtImageCopyCapture`, `WlrScreencopy`
+- `Grim::new()` - Create new Grim instance with auto-detected backend (Linux: prefers `ext-image-copy-capture-v1`, falls back to `wlr-screencopy`; Windows: DXGI Desktop Duplication)
+- `Grim::new_ext()` - Force `ext-image-copy-capture-v1` backend (**Linux/Wayland only** — fails on Windows)
+- `Grim::new_wlr()` - Force `wlr-screencopy` backend (**Linux/Wayland only** — fails on Windows)
+- `Backend` enum — `Auto`, `ExtImageCopyCapture` (Linux only), `WlrScreencopy` (Linux only)
 
 ### Getting Display Information
 

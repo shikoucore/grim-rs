@@ -34,14 +34,10 @@ pub(super) use wayland_protocols::ext::image_copy_capture::v1::client::{
 };
 
 mod capture;
-mod scaling;
-mod transform;
-mod wayland_events;
+mod events;
 
 pub(super) const ZWLR_SCREENCOPY_FRAME_V1_FLAGS_Y_INVERT: u32 = 1;
 pub(super) const MAX_ATTEMPTS: usize = 100;
-
-pub(super) const MAX_PIXELS: u64 = 134_217_728;
 
 /// Captures which capture protocol is in use and holds its specific manager objects.
 #[derive(Clone)]
@@ -65,56 +61,6 @@ pub(super) struct FrameState {
     flags: u32,
     linux_dmabuf_received: bool,
     constraints_done: bool,
-}
-
-/// Compute a safe buffer size in bytes for image-like data.
-///
-/// What it does:
-/// - Validates `width × height` without overflow.
-/// - Enforces the global `MAX_PIXELS` limit.
-/// - Computes the byte size either as `width × height × bytes_per_pixel`
-///   or as `row_stride_bytes × height` when a stride is provided.
-///
-/// Where it is used:
-/// - All large allocations in this module (capture, composite, scaling, and
-///   Wayland buffer handling) call this helper before allocating memory.
-///
-/// When to use it:
-/// - Call this helper whenever you are about to allocate a buffer whose size
-///   depends on `width × height` (and optionally row stride).
-/// - Use it for any new code path that creates `Vec<u8>` for image data or
-///   sizes a file/mmap based on image dimensions.
-///
-/// What it gives:
-/// - A checked `usize` byte size that is safe to pass to `vec![0u8; size]`
-///   or file/mmap sizing, avoiding OOM due to extreme dimensions.
-pub(super) fn checked_buffer_size(
-    width: u32,
-    height: u32,
-    bytes_per_pixel: u32,
-    row_stride_bytes: Option<u32>,
-) -> Result<usize> {
-    let pixels = (width as u64)
-        .checked_mul(height as u64)
-        .ok_or_else(|| Error::InvalidRegion("Image dimensions overflow".to_string()))?;
-
-    if pixels > MAX_PIXELS {
-        return Err(Error::InvalidRegion(format!(
-            "Image exceeds maximum pixel limit ({})",
-            MAX_PIXELS
-        )));
-    }
-
-    let bytes = match row_stride_bytes {
-        Some(stride) => (stride as u64)
-            .checked_mul(height as u64)
-            .ok_or_else(|| Error::BufferCreation("Buffer size overflow".to_string()))?,
-        None => pixels
-            .checked_mul(bytes_per_pixel as u64)
-            .ok_or_else(|| Error::BufferCreation("Buffer size overflow".to_string()))?,
-    };
-
-    usize::try_from(bytes).map_err(|_| Error::BufferCreation("Buffer size overflow".to_string()))
 }
 
 /// Safely lock a FrameState mutex, converting poisoned mutex errors to Result.
@@ -158,8 +104,8 @@ pub(super) fn guess_output_logical_geometry(info: &mut OutputInfo) {
     info.logical_width = info.width / info.scale;
     info.logical_height = info.height / info.scale;
 
-    transform::apply_output_transform(
-        info.transform,
+    crate::transform::apply_output_transform(
+        info.transform.into(),
         &mut info.logical_width,
         &mut info.logical_height,
     );
@@ -175,44 +121,13 @@ pub(super) fn update_logical_scale(info: &mut OutputInfo) {
 
     let mut physical_width = info.width;
     let mut physical_height = info.height;
-    transform::apply_output_transform(info.transform, &mut physical_width, &mut physical_height);
+    crate::transform::apply_output_transform(
+        info.transform.into(),
+        &mut physical_width,
+        &mut physical_height,
+    );
 
     info.logical_scale = (physical_width as f64) / (info.logical_width as f64);
-}
-
-pub(super) fn blit_capture(
-    dest: &mut [u8],
-    dest_width: usize,
-    dest_height: usize,
-    capture: &CaptureResult,
-    offset_x: usize,
-    offset_y: usize,
-) {
-    let src_width = capture.width as usize;
-    let src_height = capture.height as usize;
-    if src_width == 0 || src_height == 0 {
-        return;
-    }
-    if offset_x >= dest_width || offset_y >= dest_height {
-        return;
-    }
-
-    let copy_width = src_width.min(dest_width.saturating_sub(offset_x));
-    let copy_height = src_height.min(dest_height.saturating_sub(offset_y));
-    if copy_width == 0 || copy_height == 0 {
-        return;
-    }
-
-    let dest_stride = dest_width * 4;
-    let src_stride = src_width * 4;
-    let row_bytes = copy_width * 4;
-
-    for row in 0..copy_height {
-        let dest_index = (offset_y + row) * dest_stride + offset_x * 4;
-        let src_index = row * src_stride;
-        dest[dest_index..dest_index + row_bytes]
-            .copy_from_slice(&capture.data[src_index..src_index + row_bytes]);
-    }
 }
 
 #[derive(Clone)]
@@ -357,5 +272,22 @@ impl WaylandCapture {
         log::info!("grim-rs: using {} backend", backend_label);
         instance.backend = Some(backend);
         Ok(instance)
+    }
+
+    /// Capture a region within a specific output by name.
+    ///
+    /// Assumes outputs have been refreshed via `get_outputs()`.
+    pub(crate) fn capture_output_raw(
+        &mut self,
+        output_name: &str,
+        region: Region,
+        overlay_cursor: bool,
+    ) -> Result<CaptureResult> {
+        let snapshot = self.collect_outputs_snapshot();
+        let (output_handle, _info) = snapshot
+            .into_iter()
+            .find(|(_, info)| info.name == output_name)
+            .ok_or_else(|| Error::OutputNotFound(output_name.to_string()))?;
+        self.capture_region_for_output(&output_handle, region, overlay_cursor)
     }
 }

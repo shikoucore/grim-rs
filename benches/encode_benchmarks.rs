@@ -2,6 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 use grim_rs::Grim;
 #[cfg(unix)]
 use std::ffi::CString;
+use std::os::windows::ffi::OsStrExt;
 use std::path::PathBuf;
 
 #[cfg(unix)]
@@ -44,13 +45,88 @@ impl Drop for StdoutSilencer {
     }
 }
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 struct StdoutSilencer;
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 impl StdoutSilencer {
     fn new() -> Option<Self> {
         None
+    }
+}
+
+#[cfg(windows)]
+mod win32 {
+    pub const STD_OUTPUT_HANDLE: u32 = 0xFFFFFFF5;
+    pub const GENERIC_WRITE: u32 = 0x40000000;
+    pub const OPEN_EXISTING: u32 = 3;
+
+    extern "system" {
+        pub fn GetStdHandle(nStdHandle: u32) -> isize;
+        pub fn SetStdHandle(nStdHandle: u32, hHandle: isize) -> i32;
+        pub fn CreateFileW(
+            lpFileName: *const u16,
+            dwDesiredAccess: u32,
+            dwShareMode: u32,
+            lpSecurityAttributes: *mut std::ffi::c_void,
+            dwCreationDisposition: u32,
+            dwFlagsAndAttributes: u32,
+            hTemplateFile: isize,
+        ) -> isize;
+        pub fn CloseHandle(hObject: isize) -> i32;
+    }
+}
+
+#[cfg(windows)]
+struct StdoutSilencer {
+    saved_handle: isize,
+    nul_handle: isize,
+}
+
+#[cfg(windows)]
+impl StdoutSilencer {
+    fn new() -> Option<Self> {
+        unsafe {
+            let saved = win32::GetStdHandle(win32::STD_OUTPUT_HANDLE);
+            if saved == -1 || saved == 0 {
+                return None;
+            }
+
+            let nul_path: Vec<u16> = std::ffi::OsStr::new("NUL")
+                .encode_wide()
+                .chain(std::iter::once(0))
+                .collect();
+
+            let nul_handle = win32::CreateFileW(
+                nul_path.as_ptr(),
+                win32::GENERIC_WRITE,
+                0,
+                std::ptr::null_mut(),
+                win32::OPEN_EXISTING,
+                0,
+                0,
+            );
+
+            if nul_handle == -1 {
+                return None;
+            }
+
+            win32::SetStdHandle(win32::STD_OUTPUT_HANDLE, nul_handle);
+            Some(Self {
+                saved_handle: saved,
+                nul_handle,
+            })
+        }
+    }
+}
+
+#[cfg(windows)]
+impl Drop for StdoutSilencer {
+    fn drop(&mut self) {
+        unsafe {
+            win32::SetStdHandle(win32::STD_OUTPUT_HANDLE, self.saved_handle);
+            win32::CloseHandle(self.nul_handle);
+        }
     }
 }
 

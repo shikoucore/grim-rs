@@ -35,12 +35,24 @@ pub mod error;
 pub mod geometry;
 pub mod pixel_format;
 
-mod wayland_capture;
+mod buffer;
+mod compositor;
+mod platform;
+mod scaling;
+mod transform;
 
 pub use error::{Error, Result};
 pub use geometry::Region;
 
-use wayland_capture::WaylandCapture as PlatformCapture;
+#[doc(hidden)]
+pub use buffer::checked_buffer_size;
+#[cfg(target_os = "windows")]
+#[doc(hidden)]
+pub use platform::windows::blend_cursor_rgba;
+#[doc(hidden)]
+pub use transform::{apply_image_transform, rotate_180, rotate_270, rotate_90, OutputTransform};
+
+use platform::Platform;
 
 /// Result of a screenshot capture operation.
 ///
@@ -249,7 +261,7 @@ pub enum Backend {
 /// Provides methods for capturing screenshots of the entire screen,
 /// specific outputs, regions, or multiple outputs with different parameters.
 pub struct Grim {
-    platform_capture: PlatformCapture,
+    platform: Platform,
 }
 
 impl Grim {
@@ -280,11 +292,14 @@ impl Grim {
     /// # }
     /// ```
     pub fn new() -> Result<Self> {
-        let platform_capture = PlatformCapture::new(Backend::Auto)?;
-        Ok(Self { platform_capture })
+        let inner = Platform::new()?;
+        Ok(Self { platform: inner })
     }
 
     /// Create a new Grim instance forcing `ext-image-copy-capture-v1` backend.
+    ///
+    /// **Linux/Wayland only.** On Windows this method returns
+    /// [`Error::UnsupportedProtocol`].
     ///
     /// Fails if the compositor does not support this protocol (e.g. KDE, GNOME,
     /// or older Sway releases). Use [`Grim::new`] for auto-detection if you need
@@ -293,7 +308,7 @@ impl Grim {
     /// # Errors
     ///
     /// Returns [`Error::UnsupportedProtocol`] if `ext-image-copy-capture-v1`
-    /// is not available on the compositor.
+    /// is not available on the compositor, or if called on a non-Linux platform.
     ///
     /// # Example
     ///
@@ -308,11 +323,14 @@ impl Grim {
     /// # }
     /// ```
     pub fn new_ext() -> Result<Self> {
-        let platform_capture = PlatformCapture::new(Backend::ExtImageCopyCapture)?;
-        Ok(Self { platform_capture })
+        let inner = Platform::new_with_backend(Backend::ExtImageCopyCapture)?;
+        Ok(Self { platform: inner })
     }
 
     /// Create a new Grim instance forcing `wlr-screencopy` backend.
+    ///
+    /// **Linux/Wayland only.** On Windows this method returns
+    /// [`Error::UnsupportedProtocol`].
     ///
     /// Fails if the compositor does not support this protocol. Use
     /// [`Grim::new`] for auto-detection if you need to support multiple
@@ -321,7 +339,7 @@ impl Grim {
     /// # Errors
     ///
     /// Returns [`Error::UnsupportedProtocol`] if `zwlr-screencopy-manager-v1`
-    /// is not available on the compositor.
+    /// is not available on the compositor, or if called on a non-Linux platform.
     ///
     /// # Example
     ///
@@ -336,8 +354,8 @@ impl Grim {
     /// # }
     /// ```
     pub fn new_wlr() -> Result<Self> {
-        let platform_capture = PlatformCapture::new(Backend::WlrScreencopy)?;
-        Ok(Self { platform_capture })
+        let inner = Platform::new_with_backend(Backend::WlrScreencopy)?;
+        Ok(Self { platform: inner })
     }
 
     /// Get information about available display outputs.
@@ -365,7 +383,7 @@ impl Grim {
     /// # Ok::<(), grim_rs::Error>(())
     /// ```
     pub fn get_outputs(&mut self) -> Result<Vec<Output>> {
-        self.platform_capture.get_outputs()
+        self.platform.get_outputs()
     }
 
     /// Capture the entire screen (all outputs).
@@ -391,7 +409,7 @@ impl Grim {
     /// # Ok::<(), grim_rs::Error>(())
     /// ```
     pub fn capture_all(&mut self) -> Result<CaptureResult> {
-        self.platform_capture.capture_all()
+        self.platform.capture_all()
     }
 
     /// Capture the entire screen (all outputs) with specified scale factor.
@@ -421,7 +439,7 @@ impl Grim {
     /// # Ok::<(), grim_rs::Error>(())
     /// ```
     pub fn capture_all_with_scale(&mut self, scale: f64) -> Result<CaptureResult> {
-        self.platform_capture.capture_all_with_scale(scale)
+        self.platform.capture_all_with_scale(scale)
     }
 
     /// Capture a specific output by name.
@@ -454,7 +472,7 @@ impl Grim {
     /// # Ok::<(), grim_rs::Error>(())
     /// ```
     pub fn capture_output(&mut self, output_name: &str) -> Result<CaptureResult> {
-        self.platform_capture.capture_output(output_name)
+        self.platform.capture_output(output_name)
     }
 
     /// Capture a specific output by name with specified scale factor.
@@ -492,8 +510,7 @@ impl Grim {
         output_name: &str,
         scale: f64,
     ) -> Result<CaptureResult> {
-        self.platform_capture
-            .capture_output_with_scale(output_name, scale)
+        self.platform.capture_output_with_scale(output_name, scale)
     }
 
     /// Capture a specific region.
@@ -524,7 +541,7 @@ impl Grim {
     /// # Ok::<(), grim_rs::Error>(())
     /// ```
     pub fn capture_region(&mut self, region: Region) -> Result<CaptureResult> {
-        self.platform_capture.capture_region(region)
+        self.platform.capture_region(region)
     }
 
     /// Capture a specific region with specified scale factor.
@@ -560,8 +577,7 @@ impl Grim {
         region: Region,
         scale: f64,
     ) -> Result<CaptureResult> {
-        self.platform_capture
-            .capture_region_with_scale(region, scale)
+        self.platform.capture_region_with_scale(region, scale)
     }
 
     /// Capture multiple outputs with different parameters.
@@ -616,7 +632,7 @@ impl Grim {
         &mut self,
         parameters: Vec<CaptureParameters>,
     ) -> Result<MultiOutputCaptureResult> {
-        self.platform_capture.capture_outputs(parameters)
+        self.platform.capture_outputs(parameters)
     }
 
     /// Capture outputs with scale factor.
@@ -636,7 +652,7 @@ impl Grim {
         parameters: Vec<CaptureParameters>,
         default_scale: f64,
     ) -> Result<MultiOutputCaptureResult> {
-        self.platform_capture
+        self.platform
             .capture_outputs_with_scale(parameters, default_scale)
     }
 

@@ -3,16 +3,18 @@
 [![Crates.io Version](https://img.shields.io/crates/v/grim-rs.svg)](https://crates.io/crates/grim-rs)
 
 > [!IMPORTANT]
-> **Breaking changes in 0.1.9:**
 
-### Version 0.1.9
-### Read the documents carefully
+[`CHANGELOG`](CHANGELOG.md)
 
-[CHANGELOG.md](CHANGELOG.md), [MIGRATION.md](MIGRATION.md) ,[Library Examples](/doc/library_examples.md), [API](doc/api.md)
+[`API`](doc/api.md)
+
+[`MIGRATION`](MIGRATION.md)
+
+[`Examples`](doc/library_examples.md)
 
 > if you like this project, then the best way to express gratitude is to give it a star ⭐, it doesn't cost you anything, but I understand that I'm moving the project in the right direction.
 ___
-Rust implementation of `grim-rs` screenshot utility for Wayland compositors.
+Rust implementation of `grim-rs` screenshot utility for Wayland compositors and Windows (DXGI Desktop Duplication).
 
 > See [CHANGELOG.md](CHANGELOG.md) for version changes.
 > If a release requires migration, it will be documented in [MIGRATION.md](MIGRATION.md) and referenced from the changelog.
@@ -20,12 +22,14 @@ Rust implementation of `grim-rs` screenshot utility for Wayland compositors.
 ## Features
 
 - Pure Rust implementation
+- Cross-platform: same API on Linux (Wayland) and Windows (DXGI)
 - Native Wayland capture via `ext-image-copy-capture-v1` or `zwlr_screencopy_manager_v1` with auto-detection
+- Native Windows capture via DXGI Desktop Duplication API
 - Multi-output capture and compositing
-- Full output transform handling (all 8 Wayland transform modes)
+- Full output transform handling (all 8 Wayland transform modes + DXGI rotation)
 - Adaptive image scaling (Nearest / Triangle / CatmullRom / Lanczos3)
 - PNG / JPEG output
-- Cursor overlay support (compositor-dependent)
+- Cursor overlay support (compositor-dependent on Wayland, DXGI pointer shape on Windows)
 - Y-invert handling for correct orientation
 - No external runtime screenshot tools required
 - CLI supports XDG Pictures output directory
@@ -86,7 +90,9 @@ cargo install grim-rs
 grim-rs -o DP-1 -c monitor.png
 ```
 
-### Supported Wayland Protocols
+### Supported Protocols / APIs
+
+**Linux (Wayland):**
 
 - `wl_shm` - Shared memory buffers
 - `ext-image-copy-capture-v1` - Screenshot capture (new standard protocol)
@@ -94,11 +100,16 @@ grim-rs -o DP-1 -c monitor.png
 - `ext-output-image-capture-source-manager-v1` - Output capture sources
 - `wl_output` - Output information
 
+**Windows:**
+
+- DXGI Desktop Duplication API (`IDXGIOutputDuplication`)
+- D3D11 for GPU-accelerated frame capture and CPU readback
+
 ## API Reference
 
 Use:
 
-- [`doc/api.md`](doc/api.md) for a practical API index.
+- [`API`](doc/api.md) for a practical API index.
 - [`docs.rs/grim-rs`](https://docs.rs/grim-rs) for complete generated rustdoc.
 
 At a glance:
@@ -170,7 +181,9 @@ Adaptive 4-tier algorithm selection ensures optimal quality/performance balance:
 
 Priority order: `GRIM_DEFAULT_DIR` → `XDG_PICTURES_DIR` (if it exists) → current directory
 
-## Supported Compositors
+## Supported Platforms
+
+**Linux (Wayland):**
 
 - ✅ Hyprland
 - ✅ Sway
@@ -180,11 +193,16 @@ Priority order: `GRIM_DEFAULT_DIR` → `XDG_PICTURES_DIR` (if it exists) → cur
 - ✅ Any wlroots-based compositor with `zwlr_screencopy_manager_v1`
 - ✅ Compositors with `ext-image-copy-capture-v1` (Sway ≥ 2025, Hyprland, COSMIC)
 
+**Windows:**
+
+- ✅ Windows 8+ with DXGI Desktop Duplication support
+- ✅ Multi-monitor setups
+- ✅ Hardware-accelerated GPU capture via D3D11
+
 ## Limitations
 
-- Requires compositor with `ext-image-copy-capture-v1` or `zwlr_screencopy_manager_v1` protocol support
-- Linux-only (due to shared memory implementation)
-- Cursor overlay depends on compositor support
+- **Linux**: Requires compositor with `ext-image-copy-capture-v1` or `zwlr_screencopy_manager_v1` protocol support; cursor overlay depends on compositor support
+- **Windows**: `Grim::new_ext()` and `Grim::new_wlr()` return `Error::UnsupportedProtocol` (these are Wayland-only backends); protected content (DRM) cannot be captured
 
 ## Building
 
@@ -205,6 +223,7 @@ cargo run --example comprehensive_demo
 cargo run --example profile_test
 cargo run --example second_monitor_demo
 cargo run --example capture_screenshots
+cargo run --example windows_capture
 ```
 
 ## Contributing

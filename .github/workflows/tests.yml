@@ -1,0 +1,75 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-linux:
+    name: Tests (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build tests
+        run: cargo test --all-features --lib --bins --tests --examples --no-run
+
+      - name: Run tests
+        run: |
+          cargo test --all-features --lib --bins --tests --examples -- \
+            --skip test_mock_capture \
+            --skip test_scale_functionality \
+            --skip test_ppm_format \
+            --skip test_to_png \
+            --skip test_to_jpeg \
+            --skip test_new_ext_constructor \
+            --skip test_new_wlr_constructor \
+            --skip test_new_auto_is_equivalent_to_new \
+            --skip test_new_ext_can_capture \
+            --skip test_new_wlr_can_capture
+
+  test-windows:
+    name: Tests (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build tests
+        run: cargo test --all-features --lib --bins --tests --examples --no-run
+
+      - name: Run tests
+        run: |
+          cargo test --all-features --lib --bins --tests --examples -- `
+            --skip test_mock_capture `
+            --skip test_scale_functionality `
+            --skip test_ppm_format `
+            --skip test_to_png `
+            --skip test_to_jpeg `
+            --skip test_new_ext_constructor `
+            --skip test_new_wlr_constructor `
+            --skip test_new_auto_is_equivalent_to_new `
+            --skip test_new_ext_can_capture `
+            --skip test_new_wlr_can_capture

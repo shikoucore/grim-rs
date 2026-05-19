@@ -4,26 +4,31 @@ These examples show public API usage for `grim-rs`.
 
 Prerequisites:
 
-- Run inside a Wayland session.
-- Use output names returned by `grim.get_outputs()` (examples use placeholders like `DP-1`).
+- **Linux**: Run inside a Wayland session.
+- **Windows**: No special session required.
+- Use output names returned by `grim.get_outputs()` (examples use placeholders like `DP-1`; on Windows, names take the form `\\.\DISPLAY1`).
 
 ## Backend selection
 
-`Grim::new()` auto-detects the best available capture protocol (`ext-image-copy-capture-v1` preferred, `wlr-screencopy` fallback). You can force a specific backend:
+`Grim::new()` auto-detects the best available capture backend:
+- **Linux**: prefers `ext-image-copy-capture-v1`, falls back to `wlr-screencopy`.
+- **Windows**: uses DXGI Desktop Duplication.
 
-- `Grim::new_ext()` — force `ext-image-copy-capture-v1` (Sway ≥2025, Hyprland, COSMIC)
-- `Grim::new_wlr()` — force `wlr-screencopy` (older Sway, River, Wayfire)
-- `Backend` enum — `Auto`, `ExtImageCopyCapture`, `WlrScreencopy`
+You can force a specific backend:
+
+- `Grim::new_ext()` — force `ext-image-copy-capture-v1` (**Linux/Wayland only** — Sway ≥2025, Hyprland, COSMIC)
+- `Grim::new_wlr()` — force `wlr-screencopy` (**Linux/Wayland only** — older Sway, River, Wayfire)
+- `Backend` enum — `Auto`, `ExtImageCopyCapture` (Linux only), `WlrScreencopy` (Linux only)
 
 ```rust,no_run
 use grim_rs::{Backend, Grim};
 
 fn main() -> grim_rs::Result<()> {
-    // Auto-detect — works everywhere
+    // Auto-detect — works on Linux (Wayland) and Windows (DXGI)
     let mut grim = Grim::new()?;
-    // Force new protocol (Sway ≥2025, Hyprland, COSMIC)
+    // Force new protocol — Linux/Wayland only (Sway ≥2025, Hyprland, COSMIC)
     let mut grim = Grim::new_ext()?;
-    // Force legacy protocol (older compositors)
+    // Force legacy protocol — Linux/Wayland only (older Sway, River, Wayfire)
     let mut grim = Grim::new_wlr()?;
     let result = grim.capture_all()?;
     grim.save_png(result.data(), result.width(), result.height(), "screenshot.png")?;
