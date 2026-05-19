@@ -6,38 +6,29 @@
 > [`CHANGELOG`](CHANGELOG.md) · [`API`](doc/api.md) · [`MIGRATION`](MIGRATION.md) · [`Examples`](doc/library_examples.md)
 
 > if you like this project, then the best way to express gratitude is to give it a star ⭐, it doesn't cost you anything, but I understand that I'm moving the project in the right direction.
-___
-Rust implementation of `grim-rs` screenshot utility for Wayland compositors and Windows (DXGI Desktop Duplication).
 
-> See [CHANGELOG.md](CHANGELOG.md) for version changes.
-> If a release requires migration, it will be documented in [MIGRATION.md](MIGRATION.md) and referenced from the changelog.
+___
+
+Rust implementation of `grim` screenshot utility for Wayland compositors and Windows (DXGI Desktop Duplication).
 
 ## Features
 
 - Pure Rust implementation
 - Cross-platform: same API on Linux (Wayland) and Windows (DXGI)
-- Native Wayland capture via `ext-image-copy-capture-v1` or `zwlr_screencopy_manager_v1` with auto-detection
-- Native Windows capture via DXGI Desktop Duplication API
+- Native capture via `ext-image-copy-capture-v1`, `zwlr_screencopy_manager_v1`, or DXGI
 - Multi-output capture and compositing
-- Full output transform handling (all 8 Wayland transform modes + DXGI rotation)
 - Adaptive image scaling (Nearest / Triangle / CatmullRom / Lanczos3)
 - PNG / JPEG output
-- Cursor overlay support (compositor-dependent on Wayland, DXGI pointer shape on Windows)
-- Y-invert handling for correct orientation
+- Cursor overlay support
 - No external runtime screenshot tools required
-- CLI supports XDG Pictures output directory
 
 ## Usage
 
 ### As a Library
 
-Recommended:
-
 ```bash
 cargo add grim-rs
 ```
-
-Or add manually to `Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -45,14 +36,6 @@ grim-rs = "0.2"
 ```
 
 **MSRV:** Rust 1.68+
-
-**Upgrading?** See [MIGRATION.md](MIGRATION.md) and [CHANGELOG.md](CHANGELOG.md).
-
-### Library Examples
-
-Detailed library examples are in [`doc/library_examples.md`](doc/library_examples.md).
-
-Quick capture example:
 
 ```rust,no_run
 use grim_rs::Grim;
@@ -65,11 +48,7 @@ fn main() -> grim_rs::Result<()> {
 }
 ```
 
-### Command Line Usage
-
-The `grim-rs` binary supports the same functionality as the library API.
-
-Full CLI reference and examples are in [`doc/cli.md`](doc/cli.md).
+### Command Line
 
 ```bash
 # Quick start
@@ -83,145 +62,36 @@ cargo install grim-rs
 grim-rs -o DP-1 -c monitor.png
 ```
 
-### Supported Protocols / APIs
-
-**Linux (Wayland):**
-
-- `wl_shm` - Shared memory buffers
-- `ext-image-copy-capture-v1` - Screenshot capture (new standard protocol)
-- `zwlr_screencopy_manager_v1` - Screenshot capture (wlroots extension, fallback)
-- `ext-output-image-capture-source-manager-v1` - Output capture sources
-- `wl_output` - Output information
-
-**Windows:**
-
-- DXGI Desktop Duplication API (`IDXGIOutputDuplication`)
-- D3D11 for GPU-accelerated frame capture and CPU readback
-
-## API Reference
-
-Use:
-
-- [`API`](doc/api.md) for a practical API index.
-- [`docs.rs/grim-rs`](https://docs.rs/grim-rs) for complete generated rustdoc.
-
-At a glance:
-
-- Initialize: `Grim::new()` (auto), `Grim::new_ext()`, `Grim::new_wlr()`
-- Pixel formats: `pixel_format::PixelFormat`, `fourcc_to_format()`, `convert_to_rgba()`
-- Capture: `capture_all*`, `capture_output*`, `capture_region*`, `capture_outputs*`
-- Encode/save: `save_png*`, `save_jpeg*`, `to_png*`, `to_jpeg*`
-- Stdout/stderr helpers: `write_png_to_stdout*`, `write_jpeg_to_stdout*`
-- Utility: `Grim::read_region_from_stdin()`
-
-Feature flags:
-
-- `jpeg` enabled by default (JPEG encode/save/stdout methods).
-
-## Full API Documentation
-
-Comprehensive API documentation is available at [docs.rs](https://docs.rs/grim-rs) or can be generated locally:
-
-```bash
-cargo doc --open
-```
+Full CLI reference: [`doc/cli.md`](doc/cli.md)
 
 ## Architecture
 
 ![grim-rs architecture](doc/assets/architecture.svg)
 
-### Key Components
+### Processing Pipeline
 
-1. **Grim** - Main interface for taking screenshots
-2. **CaptureResult** - Contains screenshot data and dimensions
-3. **CaptureParameters** - Parameters for multi-output capture
-4. **Buffer** - Shared memory buffer management
-5. **PixelFormat** - Pixel format conversion utilities
-6. **Region** - Region and coordinate handling
-7. **Output** - Monitor information with transform support
-8. **Error** - Comprehensive error handling
-
-### Image Processing Pipeline
-
-![grim-rs image processing pipeline](doc/assets/pipeline.svg)
-
-### Scaling Quality
-
-Adaptive 4-tier algorithm selection ensures optimal quality/performance balance:
-
-- **Upscaling (scale > 1.0)**: Nearest filter
-  - Fastest option for scaling up
-  - Preserves hard edges (can look blocky)
-  - Example: 1920×1080 → 2560×1440 (1.33×)
-
-- **Mild downscaling (0.75 ≤ scale ≤ 1.0)**: Triangle filter
-  - Fast, high-quality for small size reductions
-  - Perfect for minor adjustments: 1920×1080 → 1536×864 (0.8×)
-- **Moderate downscaling (0.5 ≤ scale < 0.75)**: CatmullRom filter
-  - Sharper results than Triangle
-  - Better performance than Lanczos3
-  - Ideal for medium reduction: 1920×1080 → 1280×720 (0.67×)
-
-- **Heavy downscaling (scale < 0.5)**: Lanczos3 convolution
-  - Best quality for significant reduction
-  - Ideal for thumbnails: 3840×2160 → 960×540 (0.25×)
-  - Superior detail preservation at extreme scales
-
-## Environment Variables
-
-- **`GRIM_DEFAULT_DIR`** - Override default screenshot directory (highest priority)
-- **`XDG_PICTURES_DIR`** - XDG Pictures directory (from env or `~/.config/user-dirs.dirs`)
-
-Priority order: `GRIM_DEFAULT_DIR` → `XDG_PICTURES_DIR` (if it exists) → current directory
+![grim-rs pipeline](doc/assets/pipeline.svg)
 
 ## Supported Platforms
 
-**Linux (Wayland):**
+**Linux (Wayland):** Hyprland, Sway, River, Wayfire, Niri, any wlroots-based compositor
 
-- ✅ Hyprland
-- ✅ Sway
-- ✅ River
-- ✅ Wayfire
-- ✅ Niri
-- ✅ Any wlroots-based compositor with `zwlr_screencopy_manager_v1`
-- ✅ Compositors with `ext-image-copy-capture-v1` (Sway ≥ 2025, Hyprland, COSMIC)
-
-**Windows:**
-
-- ✅ Windows 8+ with DXGI Desktop Duplication support
-- ✅ Multi-monitor setups
-- ✅ Hardware-accelerated GPU capture via D3D11
+**Windows:** Windows 8+ with DXGI Desktop Duplication support
 
 ## Limitations
 
-- **Linux**: Requires compositor with `ext-image-copy-capture-v1` or `zwlr_screencopy_manager_v1` protocol support; cursor overlay depends on compositor support
-- **Windows**: `Grim::new_ext()` and `Grim::new_wlr()` return `Error::UnsupportedProtocol` (these are Wayland-only backends); protected content (DRM) cannot be captured
+- **Linux**: Requires compositor with `ext-image-copy-capture-v1` or `zwlr_screencopy_manager_v1`
+- **Windows**: `Grim::new_ext()` and `Grim::new_wlr()` return `Error::UnsupportedProtocol` (Wayland-only); protected content (DRM) cannot be captured
 
 ## Building
 
 ```bash
-cd grim-rs
 cargo build --release
-```
-
-## Testing
-
-```bash
-# Run tests
-cargo test
-cargo test --all-targets
-
-# Run examples
-cargo run --example comprehensive_demo
-cargo run --example profile_test
-cargo run --example second_monitor_demo
-cargo run --example capture_screenshots
-cargo run --example windows_capture
 ```
 
 ## Contributing
 
-See the full contribution guide in [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
