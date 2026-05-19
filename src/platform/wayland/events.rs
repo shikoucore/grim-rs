@@ -1,4 +1,5 @@
 use super::*;
+use crate::checked_buffer_size;
 
 impl Dispatch<WlRegistry, ()> for WaylandCapture {
     fn event(

@@ -1,5 +1,4 @@
 use super::*;
-use crate::transform::{apply_image_transform, flip_vertical};
 use wayland_protocols::ext::image_copy_capture::v1::client::ext_image_copy_capture_manager_v1::Options as ExtCopyOptions;
 
 impl WaylandCapture {
@@ -31,7 +30,7 @@ impl WaylandCapture {
         Ok(())
     }
 
-    fn collect_outputs_snapshot(&self) -> Vec<(WlOutput, OutputInfo)> {
+    pub(super) fn collect_outputs_snapshot(&self) -> Vec<(WlOutput, OutputInfo)> {
         self.globals
             .outputs
             .iter()
@@ -46,7 +45,7 @@ impl WaylandCapture {
             .collect()
     }
 
-    fn capture_region_for_output(
+    pub(super) fn capture_region_for_output(
         &mut self,
         output: &WlOutput,
         region: Region,
@@ -816,7 +815,7 @@ impl WaylandCapture {
                             &final_data,
                             final_width,
                             final_height,
-                            info.transform,
+                            info.transform.into(),
                         );
                     final_data = transformed_data;
                     final_width = new_width;

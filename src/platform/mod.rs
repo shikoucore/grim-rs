@@ -9,8 +9,7 @@ pub(crate) mod windows;
 use windows::WindowsCapture;
 
 use crate::{
-    Backend, CaptureParameters, CaptureResult, Error, MultiOutputCaptureResult, Output, Region,
-    Result,
+    Backend, CaptureParameters, CaptureResult, MultiOutputCaptureResult, Output, Region, Result,
 };
 
 /// Platform abstraction — static enum, no allocation, no vtable.
@@ -45,7 +44,7 @@ impl Platform {
         }
         #[cfg(not(any(target_os = "linux", target_os = "windows")))]
         {
-            Err(Error::UnsupportedProtocol(
+            Err(crate::Error::UnsupportedProtocol(
                 "No platform backend available for this operating system".to_string(),
             ))
         }
@@ -61,7 +60,7 @@ impl Platform {
             match backend {
                 Backend::Auto => Ok(Platform::Windows(WindowsCapture::new(backend)?)),
                 Backend::ExtImageCopyCapture | Backend::WlrScreencopy => {
-                    Err(Error::UnsupportedProtocol(
+                    Err(crate::Error::UnsupportedProtocol(
                         "ext-image-copy-capture-v1 and wlr-screencopy are Wayland protocols \
                          not available on Windows"
                             .to_string(),
@@ -72,7 +71,7 @@ impl Platform {
         #[cfg(not(any(target_os = "linux", target_os = "windows")))]
         {
             let _ = backend;
-            Err(Error::UnsupportedProtocol(
+            Err(crate::Error::UnsupportedProtocol(
                 "No platform backend available for this operating system".to_string(),
             ))
         }
