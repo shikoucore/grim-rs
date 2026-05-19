@@ -32,7 +32,7 @@ mod windows_cursor_blend {
         let mut frame = make_frame(10, 10, 0, 0, 0, 255);
         let cursor = make_cursor(2, 2, 50, 100, 200, 255);
         let pitch = 2 * 4;
-        blend_cursor_rgba(&mut frame, 10, 10, &cursor, 2, 2, pitch, 0, 0);
+        blend_cursor_rgba(&mut frame, (10, 10), &cursor, (2, 2), pitch, (0, 0));
         let i = 0;
         assert_eq!(frame[i], 200);
         assert_eq!(frame[i + 1], 100);
@@ -46,7 +46,7 @@ mod windows_cursor_blend {
         let original = frame.clone();
         let cursor = make_cursor(4, 4, 50, 60, 70, 0);
         let pitch = 4 * 4;
-        blend_cursor_rgba(&mut frame, 10, 10, &cursor, 4, 4, pitch, 0, 0);
+        blend_cursor_rgba(&mut frame, (10, 10), &cursor, (4, 4), pitch, (0, 0));
         assert_eq!(frame, original);
     }
 
@@ -54,8 +54,8 @@ mod windows_cursor_blend {
     fn cursor_at_offset_blends_correct_pixels() {
         let mut frame = make_frame(10, 10, 10, 10, 10, 255);
         let cursor = make_cursor(1, 1, 100, 200, 255, 255);
-        let pitch = 1 * 4;
-        blend_cursor_rgba(&mut frame, 10, 10, &cursor, 1, 1, pitch, 5, 3);
+        let pitch = 4;
+        blend_cursor_rgba(&mut frame, (10, 10), &cursor, (1, 1), pitch, (5, 3));
         let i = ((3 * 10 + 5) * 4) as usize;
         assert_eq!(frame[i], 255);
         assert_eq!(frame[i + 1], 200);
@@ -69,7 +69,7 @@ mod windows_cursor_blend {
         let mut frame = make_frame(10, 10, 50, 50, 50, 255);
         let cursor = make_cursor(6, 6, 100, 200, 255, 255);
         let pitch = 6 * 4;
-        blend_cursor_rgba(&mut frame, 10, 10, &cursor, 6, 6, pitch, -3, 0);
+        blend_cursor_rgba(&mut frame, (10, 10), &cursor, (6, 6), pitch, (-3, 0));
         let i = 0;
         assert_eq!(frame[i], 255);
         assert_eq!(frame[i + 1], 200);
@@ -83,7 +83,7 @@ mod windows_cursor_blend {
         let mut frame = make_frame(10, 10, 50, 50, 50, 255);
         let cursor = make_cursor(4, 6, 100, 200, 255, 255);
         let pitch = 4 * 4;
-        blend_cursor_rgba(&mut frame, 10, 10, &cursor, 4, 6, pitch, 0, -2);
+        blend_cursor_rgba(&mut frame, (10, 10), &cursor, (4, 6), pitch, (0, -2));
         let top_i = 0usize;
         assert_eq!(frame[top_i], 255);
         assert_eq!(frame[top_i + 1], 200);
@@ -95,7 +95,7 @@ mod windows_cursor_blend {
         let original = frame.clone();
         let cursor = make_cursor(4, 4, 100, 200, 255, 255);
         let pitch = 4 * 4;
-        blend_cursor_rgba(&mut frame, 10, 10, &cursor, 4, 4, pitch, -10, -10);
+        blend_cursor_rgba(&mut frame, (10, 10), &cursor, (4, 4), pitch, (-10, -10));
         assert_eq!(frame, original);
     }
 
@@ -111,7 +111,7 @@ mod windows_cursor_blend {
             cursor[base + 2] = 200;
             cursor[base + 3] = 255;
         }
-        blend_cursor_rgba(&mut frame, 8, 8, &cursor, 3, 3, 16, 2, 2);
+        blend_cursor_rgba(&mut frame, (8, 8), &cursor, (3, 3), 16, (2, 2));
         let i = ((2 * 8 + 2) * 4) as usize;
         assert_eq!(frame[i], 200);
         assert_eq!(frame[i + 1], 100);
@@ -123,8 +123,8 @@ mod windows_cursor_blend {
     fn partial_alpha_cursor_blends_correctly() {
         let mut frame = make_frame(5, 5, 100, 100, 100, 255);
         let cursor = make_cursor(1, 1, 0, 0, 255, 128);
-        let pitch = 1 * 4;
-        blend_cursor_rgba(&mut frame, 5, 5, &cursor, 1, 1, pitch, 0, 0);
+        let pitch = 4;
+        blend_cursor_rgba(&mut frame, (5, 5), &cursor, (1, 1), pitch, (0, 0));
         let a = 128.0 / 255.0;
         let expected_r = (255.0 * a + 100.0 * (1.0 - a)) as u8;
         let expected_g = (0.0 * a + 100.0 * (1.0 - a)) as u8;

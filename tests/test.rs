@@ -497,10 +497,7 @@ fn test_read_region_from_stdin() {
 fn test_scale_functionality() {
     let mut grim = Grim::new().unwrap();
     let test_capture = grim.capture_all_with_scale(1.0);
-    match test_capture {
-        Ok(_) => {}
-        Err(_) => {}
-    }
+    if test_capture.is_ok() {}
 }
 
 #[test]

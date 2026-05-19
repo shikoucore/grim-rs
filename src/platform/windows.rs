@@ -170,8 +170,7 @@ impl WindowsCapture {
 
         let adapter_state = &self.adapters[info.adapter_idx];
 
-        let adapter: IDXGIAdapter1 =
-            unsafe { self.factory.EnumAdapters1(info.adapter_idx as u32) }
+        let adapter: IDXGIAdapter1 = unsafe { self.factory.EnumAdapters1(info.adapter_idx as u32) }
             .map_err(|e| Error::DirectXError(format!("EnumAdapters1: {e}")))?;
         let output: IDXGIOutput = unsafe { adapter.EnumOutputs(info.output_idx as u32) }
             .map_err(|e| Error::DirectXError(format!("EnumOutputs: {e}")))?;
@@ -356,14 +355,11 @@ impl WindowsCapture {
 
                             blend_cursor_rgba(
                                 &mut pixels,
-                                width,
-                                height,
+                                (width, height),
                                 &cursor_buf,
-                                cursor_w,
-                                cursor_h,
+                                (cursor_w, cursor_h),
                                 cursor_pitch,
-                                screen_x,
-                                screen_y,
+                                (screen_x, screen_y),
                             );
                         }
                     }
@@ -593,15 +589,15 @@ impl WindowsCapture {
 
 pub fn blend_cursor_rgba(
     frame: &mut [u8],
-    frame_w: u32,
-    frame_h: u32,
+    frame_size: (u32, u32),
     cursor_buf: &[u8],
-    cursor_w: u32,
-    cursor_h: u32,
+    cursor_size: (u32, u32),
     cursor_pitch: usize,
-    screen_x: i32,
-    screen_y: i32,
+    screen_pos: (i32, i32),
 ) {
+    let (frame_w, frame_h) = frame_size;
+    let (cursor_w, cursor_h) = cursor_size;
+    let (screen_x, screen_y) = screen_pos;
     for cy in 0..cursor_h as i32 {
         for cx in 0..cursor_w as i32 {
             let px = screen_x + cx;
