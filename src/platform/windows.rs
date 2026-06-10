@@ -217,13 +217,11 @@ impl WindowsCapture {
         info: &OutputInfo,
         overlay_cursor: bool,
     ) -> Result<(Vec<u8>, u32, u32)> {
-        let adapter = &self.adapters[info.adapter_idx];
-        let dup = self.dup_cache.get(&info.name).unwrap();
-
         let mut frame_info = DXGI_OUTDUPL_FRAME_INFO::default();
         let mut attempts = 0;
 
         loop {
+            let dup = self.dup_cache.get(&info.name).unwrap();
             let mut desktop_resource: Option<IDXGIResource> = None;
             let result = unsafe {
                 dup.AcquireNextFrame(
@@ -249,6 +247,8 @@ impl WindowsCapture {
                             continue;
                         }
                     };
+
+                    let adapter = &self.adapters[info.adapter_idx];
 
                     let texture: ID3D11Texture2D = resource.cast().map_err(|e| {
                         Error::DirectXError(format!("Cast IDXGIResource -> ID3D11Texture2D: {e}"))
@@ -376,9 +376,14 @@ impl WindowsCapture {
                 }
                 Err(e) if e.code() == DXGI_ERROR_ACCESS_LOST => {
                     self.dup_cache.remove(&info.name);
-                    return Err(Error::FrameCapture(
-                        "Output mode changed, retry capture".to_string(),
-                    ));
+                    attempts += 1;
+                    if attempts >= MAX_ACQUIRE_ATTEMPTS {
+                        return Err(Error::FrameCapture(
+                            "Output mode changed, retry capture".to_string(),
+                        ));
+                    }
+                    self.get_dup(info)?;
+                    continue;
                 }
                 Err(e) => {
                     return Err(Error::DirectXError(format!("AcquireNextFrame: {e}")));
