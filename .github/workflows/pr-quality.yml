@@ -18,10 +18,10 @@ jobs:
 
       - name: Check for merge commits
         run: |
-          MERGES=$(git log --oneline --merges "origin/${{ github.base_ref }}..HEAD" | wc -l)
+          MERGES=$(git log --oneline --merges "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}" | wc -l)
           if [ "$MERGES" -gt 0 ]; then
             echo "::error::PR contains ${MERGES} merge commit(s). Rebase onto ${{ github.base_ref }} instead of merging."
-            git log --oneline --merges "origin/${{ github.base_ref }}..HEAD"
+            git log --oneline --merges "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}"
             exit 1
           fi
           echo "No merge commits found"
@@ -39,7 +39,7 @@ jobs:
         run: |
           # Check each commit in the PR follows conventional commits format
           # Allowed: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
-          BAD_COMMITS=$(git log --oneline "origin/${{ github.base_ref }}..HEAD" --format="%s" | grep -v '^Merge ' | sed 's/^ *//' | grep -vE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9_-]+\))?!?: .+' || true)
+          BAD_COMMITS=$(git log --oneline "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}" --format="%s" | grep -v '^Merge ' | sed 's/^ *//' | grep -vE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9_-]+\))?!?: .+' || true)
           if [ -n "$BAD_COMMITS" ]; then
             echo "::error::The following commits do not follow conventional commits format:"
             echo "$BAD_COMMITS"
