@@ -49,6 +49,15 @@ pub enum Error {
 
     #[error("Image scaling failed: {0}")]
     ScalingFailed(String),
+
+    #[error("DirectX error: {0}")]
+    DirectXError(String),
+
+    #[error("Protected content cannot be captured: {0}")]
+    ProtectedContent(String),
+
+    #[error("No suitable GPU adapter found")]
+    NoGpuAdapter,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

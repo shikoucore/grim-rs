@@ -3,11 +3,8 @@ use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-
     let mut grim = Grim::new()?;
-
     println!("grim-rs Performance Profiling\n");
-
     println!("1. Full screen capture:");
     let start = Instant::now();
     let result = grim.capture_all()?;
@@ -19,7 +16,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         result.data().len(),
         result.data().len() as f64 / 1024.0 / 1024.0
     );
-
     println!("2. PNG encoding (different compression levels):");
     for level in [1, 6, 9] {
         let start = Instant::now();
@@ -34,7 +30,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             png_data.len() as f64 / 1024.0 / 1024.0
         );
     }
-
     #[cfg(feature = "jpeg")]
     {
         println!("3. JPEG encoding (different quality levels):");
@@ -53,7 +48,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         println!();
     }
-
     println!("4. Capture with different scales:");
     for scale in [0.5, 1.0, 2.0] {
         let start = Instant::now();
@@ -68,7 +62,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             scaled_result.data().len() as f64 / 1024.0 / 1024.0
         );
     }
-
     println!("6. Get outputs info:");
     let start = Instant::now();
     let outputs = grim.get_outputs()?;
@@ -84,7 +77,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             output.scale()
         );
     }
-
     let iterations = 10;
     println!("7. Stress test ({} iterations):", iterations);
     let start = Instant::now();
@@ -99,14 +91,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Total time: {:?}", total);
     println!("Average per capture: {:?}", avg);
     println!("Captures per second: {:.2}\n", 1.0 / avg.as_secs_f64());
-
     println!("8. Region capture (different sizes):");
     let regions = [
         ("Small (100x100)", grim_rs::Region::new(0, 0, 100, 100)),
         ("Medium (500x500)", grim_rs::Region::new(0, 0, 500, 500)),
         ("Large (1920x1080)", grim_rs::Region::new(0, 0, 1920, 1080)),
     ];
-
     for (name, region) in &regions {
         let start = Instant::now();
         match grim.capture_region(*region) {
@@ -127,8 +117,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     println!();
-
     println!("Profiling Complete");
-
     Ok(())
 }

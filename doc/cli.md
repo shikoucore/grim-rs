@@ -1,6 +1,6 @@
 # CLI Guide (`grim-rs`)
 
-The `grim-rs` binary provides screenshot capture from Wayland compositors.
+The `grim-rs` binary provides screenshot capture from Wayland compositors and Windows.
 
 By default, output is saved to:
 

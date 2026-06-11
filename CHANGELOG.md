@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] 2026-06-11
+
+### Added
+
+- **Windows backend via DXGI Desktop Duplication API**: `grim-rs` now supports native screenshot capture on Windows 8+. Uses `IDXGIOutputDuplication` with D3D11 hardware acceleration. All public API methods work identically on both Linux and Windows — `Grim::new()` auto-detects the platform (DXGI on Windows, Wayland protocols on Linux). Added cursor overlay support on Windows via `GetFramePointerShape`.
+- **Platform abstraction layer**: Internal `Platform` enum with `Wayland` and `Windows` variants providing static dispatch — no trait objects, no allocation overhead. Shared compositing, scaling, buffer management, and transform logic across both platforms.
+- **New error variants**: `DirectXError`, `ProtectedContent`, `NoGpuAdapter` for Windows-specific failure modes.
+- **`windows` crate dependency**: Windows-only dependency (`windows = "0.58"`) with Direct3D, D3D11, DXGI, GDI, and Threading features — zero dependency cost on Linux.
+- **`examples/windows_capture.rs`**: Full-featured Windows capture example demonstrating all API methods.
+
+### Changed
+
+- **`Grim::new_ext()` and `Grim::new_wlr()`**: Now return `Error::UnsupportedProtocol` when called on Windows — these backends are Wayland-only.
+- **Dependency organization**: `wayland-client`, `wayland-protocols`, `wayland-protocols-wlr`, `memmap2`, and `tempfile` are now `cfg(target_os = "linux")`-gated.
 ## [0.1.9] 2026-05-18
 
 ### Added

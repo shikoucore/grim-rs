@@ -1,4 +1,5 @@
 use super::*;
+use crate::checked_buffer_size;
 
 impl Dispatch<WlRegistry, ()> for WaylandCapture {
     fn event(
@@ -57,7 +58,6 @@ impl Dispatch<WlRegistry, ()> for WaylandCapture {
                 "wl_output" => {
                     let output = registry.bind::<WlOutput, _, _>(name, version, qh, ());
                     let output_id = output.id().protocol_id();
-
                     state.globals.output_info.insert(
                         output_id,
                         OutputInfo {
@@ -79,7 +79,6 @@ impl Dispatch<WlRegistry, ()> for WaylandCapture {
                     );
                     let output_idx = state.globals.outputs.len();
                     state.globals.outputs.push(output.clone());
-
                     if let Some(ref xdg_output_manager) = state.globals.xdg_output_manager {
                         let output_to_use = &state.globals.outputs[output_idx];
                         let xdg_output = xdg_output_manager.get_xdg_output(output_to_use, qh, ());
@@ -318,8 +317,6 @@ impl Dispatch<ZwlrScreencopyFrameV1, Arc<Mutex<FrameState>>> for WaylandCapture 
                         return;
                     }
                 };
-                // Only take dimensions / format from dmabuf if the Buffer event
-                // hasn't already populated them (some compositors send both).
                 if state.width == 0 {
                     state.width = width;
                 }
@@ -368,7 +365,6 @@ impl Dispatch<ZxdgOutputV1, ()> for WaylandCapture {
                 break;
             }
         }
-
         if let Some(wl_output_id) = found_output_id {
             if let Some(info) = state.globals.output_info.get_mut(&wl_output_id) {
                 match event {
@@ -492,7 +488,6 @@ impl Dispatch<ExtImageCopyCaptureSessionV1, Arc<Mutex<FrameState>>> for WaylandC
                 return;
             }
         };
-
         match event {
             Event::BufferSize { width, height } => {
                 s.width = width;
@@ -533,7 +528,6 @@ impl Dispatch<ExtImageCopyCaptureFrameV1, Arc<Mutex<FrameState>>> for WaylandCap
                 return;
             }
         };
-
         match event {
             Event::Ready => {
                 s.ready = true;

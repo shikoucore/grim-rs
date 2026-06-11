@@ -1,14 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
   <title id="title">grim-rs architecture</title>
-  <desc id="desc">High-level architecture: Application/CLI to grim-rs, split into capture and encode backends.</desc>
+  <desc id="desc">High-level architecture: Application/CLI to grim-rs, Platform enum dispatches to Wayland or Windows capture, encode backend handles PNG/JPEG output.</desc>
   <defs>
     <style>
       .box { fill: #f8fafc; stroke: #334155; stroke-width: 2; rx: 10; }
       .box-blue { fill: #dbeafe; }
       .box-green { fill: #dcfce7; }
       .box-orange { fill: #ffedd5; }
-      .txt { fill: #0f172a; font: 20px "Fira Sans", "Segoe UI", sans-serif; }
-      .sub { fill: #334155; font: 16px "Fira Sans", "Segoe UI", sans-serif; }
+      .box-purple { fill: #ede9fe; }
+      .txt { fill: #0f172a; font: 19px "Fira Sans", "Segoe UI", sans-serif; }
+      .sub { fill: #334155; font: 15px "Fira Sans", "Segoe UI", sans-serif; }
+      .sub-sm { fill: #475569; font: 13px "Fira Sans", "Segoe UI", sans-serif; }
       .arrow { stroke: #334155; stroke-width: 2.5; fill: none; marker-end: url(#m); }
     </style>
     <marker id="m" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
@@ -16,7 +18,7 @@
     </marker>
   </defs>
 
-  <!-- Top flow -->
+  <!-- Top -->
   <rect class="box box-blue" x="430" y="28" width="240" height="64"/>
   <text class="txt" x="550" y="67" text-anchor="middle">Application / CLI</text>
 
@@ -26,31 +28,51 @@
   <text class="txt" x="550" y="182" text-anchor="middle">grim-rs</text>
 
   <!-- Split arrows -->
-  <line class="arrow" x1="550" y1="208" x2="305" y2="262"/>
-  <line class="arrow" x1="550" y1="208" x2="795" y2="262"/>
+  <line class="arrow" x1="550" y1="208" x2="300" y2="262"/>
+  <line class="arrow" x1="550" y1="208" x2="800" y2="262"/>
 
   <!-- Capture branch -->
-  <rect class="box box-orange" x="120" y="262" width="370" height="84"/>
-  <text class="txt" x="305" y="300" text-anchor="middle">Capture backend</text>
-  <text class="sub" x="305" y="326" text-anchor="middle">(wayland_capture/*)</text>
+  <rect class="box box-orange" x="80" y="262" width="440" height="72"/>
+  <text class="txt" x="300" y="298" text-anchor="middle">Capture backend</text>
+  <text class="sub" x="300" y="320" text-anchor="middle">platform/{wayland, windows}.rs</text>
 
-  <line class="arrow" x1="305" y1="346" x2="305" y2="405"/>
+  <!-- Split from Capture to Linux/Win -->
+  <line class="arrow" x1="220" y1="334" x2="150" y2="385"/>
+  <line class="arrow" x1="380" y1="334" x2="450" y2="385"/>
 
-  <rect class="box box-orange" x="85" y="405" width="440" height="88"/>
-  <text class="txt" x="305" y="443" text-anchor="middle">wayland-client +</text>
-  <text class="txt" x="305" y="468" text-anchor="middle">wayland-protocols(-wlr)</text>
+  <!-- Linux (Wayland) column -->
+  <rect class="box box-orange" x="30" y="385" width="240" height="90"/>
+  <text class="txt" x="150" y="422" text-anchor="middle">Linux (Wayland)</text>
+  <text class="sub-sm" x="150" y="444" text-anchor="middle">wayland-client +</text>
+  <text class="sub-sm" x="150" y="462" text-anchor="middle">wayland-protocols(-wlr)</text>
 
-  <line class="arrow" x1="305" y1="493" x2="305" y2="556"/>
+  <line class="arrow" x1="150" y1="475" x2="150" y2="526"/>
 
-  <rect class="box box-orange" x="175" y="556" width="260" height="52"/>
-  <text class="txt" x="305" y="589" text-anchor="middle">Wayland compositor</text>
+  <rect class="box box-orange" x="50" y="526" width="200" height="52"/>
+  <text class="txt" x="150" y="559" text-anchor="middle">Wayland compositor</text>
+
+  <!-- Windows (DXGI) column -->
+  <rect class="box box-purple" x="330" y="385" width="240" height="90"/>
+  <text class="txt" x="450" y="422" text-anchor="middle">Windows (DXGI)</text>
+  <text class="sub-sm" x="450" y="444" text-anchor="middle">windows crate</text>
+  <text class="sub-sm" x="450" y="462" text-anchor="middle">DXGI / D3D11</text>
+
+  <line class="arrow" x1="450" y1="475" x2="450" y2="526"/>
+
+  <rect class="box box-purple" x="350" y="526" width="200" height="52"/>
+  <text class="txt" x="450" y="559" text-anchor="middle">Windows Desktop</text>
+
+  <!-- Platform enum note -->
+  <rect class="box" x="80" y="610" width="440" height="48" stroke-dasharray="6,3"/>
+  <text class="sub-sm" x="300" y="630" text-anchor="middle">Platform enum — static dispatch, no trait objects</text>
+  <text class="sub-sm" x="300" y="648" text-anchor="middle">shared compositing / scaling / buffer / transform modules</text>
 
   <!-- Encode branch -->
-  <rect class="box box-green" x="610" y="262" width="370" height="84"/>
-  <text class="txt" x="795" y="300" text-anchor="middle">Encode backend</text>
-  <text class="sub" x="795" y="326" text-anchor="middle">(png/jpeg/ppm)</text>
+  <rect class="box box-green" x="610" y="262" width="370" height="72"/>
+  <text class="txt" x="795" y="298" text-anchor="middle">Encode backend</text>
+  <text class="sub" x="795" y="320" text-anchor="middle">png / jpeg</text>
 
-  <line class="arrow" x1="795" y1="346" x2="795" y2="436"/>
+  <line class="arrow" x1="795" y1="334" x2="795" y2="436"/>
 
   <rect class="box box-green" x="640" y="436" width="310" height="68"/>
   <text class="txt" x="795" y="478" text-anchor="middle">bytes / file / stdout</text>
